@@ -1,0 +1,11 @@
+{
+  "name": "robonuggets",
+  "owner": { "name": "Jay E", "url": "https://robonuggets.com" },
+  "plugins": [
+    {
+      "name": "model-grid",
+      "source": "./",
+      "description": "A model x effort grid for Claude Code. /picker opens it, one pick sets the model and effort of every reply."
+    }
+  ]
+}

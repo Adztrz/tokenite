@@ -1,0 +1,11 @@
+{
+  "name": "model-grid",
+  "version": "0.1.0",
+  "description": "A model x effort grid for Claude Code. /picker opens it, one pick sets the model and effort of every reply.",
+  "author": { "name": "Jay E", "url": "https://robonuggets.com" },
+  "homepage": "https://github.com/robonuggets/model-grid",
+  "repository": "https://github.com/robonuggets/model-grid",
+  "license": "CC-BY-4.0",
+  "keywords": ["model", "effort", "picker", "mod", "claude-code"],
+  "types": "./types/index.d.ts"
+}
