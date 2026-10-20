@@ -1,9 +1,9 @@
 import { expect, mock, test } from 'claude-code/testing'
 
 const PANE = {
-  plugin: 'model-grid',
+  plugin: 'ribbon',
   component: 'Pane',
-  requestId: 'model-grid',
+  requestId: 'ribbon',
   props: {
     title: 'Model × Effort',
     isFocused: true,

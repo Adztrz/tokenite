@@ -4,6 +4,6 @@ export type GridPick = { isOn: boolean; model: number; effort: number; mem: numb
 
 declare module 'claude-code' {
   interface PluginState {
-    'model-grid': { pick: GridPick }
+    'ribbon': { pick: GridPick }
   }
 }

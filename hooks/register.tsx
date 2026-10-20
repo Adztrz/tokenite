@@ -8,7 +8,7 @@ import type { GridPick } from '../types'
 // wins over the app's own picker until "hand back" turns it off. Subagents keep
 // whatever model they were started on.
 
-const PANE = 'model-grid'
+const PANE = 'ribbon'
 const STORE_KEY = 'pick'
 
 const MODELS = ['HAIKU', 'SONNET', 'OPUS', 'FABLE'] as const
@@ -28,7 +28,7 @@ const COL_W = 9
 
 const OFF: GridPick = { isOn: false, model: 2, effort: 2, mem: [-1, -1, -1, -1] }
 
-const pick = atom({ plugin: 'model-grid', key: 'pick' } as const, OFF)
+const pick = atom({ plugin: 'ribbon', key: 'pick' } as const, OFF)
 
 const isPick = (v: unknown): v is GridPick => {
   if (v === null || typeof v !== 'object') return false

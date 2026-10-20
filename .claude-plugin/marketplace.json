@@ -3,9 +3,9 @@
   "owner": { "name": "Jay E", "url": "https://robonuggets.com" },
   "plugins": [
     {
-      "name": "model-grid",
+      "name": "ribbon",
       "source": "./",
-      "description": "A model x effort grid for Claude Code. /picker opens it, one pick sets the model and effort of every reply."
+      "description": "A model x effort ribbon for Claude Code. /picker opens it, one pick sets the model and effort of every reply."
     }
   ]
 }
