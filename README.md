@@ -141,7 +141,7 @@ Click **Show** and the band opens into the cache card.
 
 ## License
 
-[CC BY 4.0](LICENSE).
+[MIT](LICENSE).
 
 The embedded font is [Outfit](https://github.com/Outfitio/Outfit-Fonts), under the SIL Open Font License 1.1.
 

@@ -5,7 +5,7 @@
   "author": { "name": "Jay E", "url": "https://robonuggets.com" },
   "homepage": "https://github.com/robonuggets/ribbon",
   "repository": "https://github.com/robonuggets/ribbon",
-  "license": "CC-BY-4.0",
+  "license": "MIT",
   "keywords": ["usage", "rate-limit", "prompt-cache", "cost", "status", "mod", "claude-code"],
   "types": "./types/index.d.ts"
 }
