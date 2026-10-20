@@ -12,8 +12,14 @@ A free mod for Claude Code. It adds a slim band above your prompt that shows:
 It installs once and is there in every session after that. No commands to learn.
 
 <p align="center">
-  <img src="assets/screenshot-1-folded.png" alt="ribbon above the prompt: 7D 41% left, 5H 100% left, cache warm with 52 minutes left" width="100%">
+  <img src="assets/slim-warm.png" alt="ribbon, one slim row: 7D 41% left, 5H 96% left, cache warm with 53 minutes left" width="100%">
 </p>
+
+<p align="center">
+  <img src="assets/slim-cold.png" alt="ribbon, one slim row: 7D 45% left, 5H 89% left, cache cold for 12h 45m, next message $4.78" width="100%">
+</p>
+
+One row. That's the whole footprint.
 
 ## Install
 
@@ -65,15 +71,7 @@ After your first reply, the band also tracks the prompt cache. The cache keeps y
 
 Click **Show** to open the cache card, and **Hide** to fold it. Warm starts folded. Cold starts open, so you see the price before you send.
 
-<p align="center">
-  <img src="assets/screenshot-2-open.png" alt="The open cache card: warm, 9 minutes idle, 203k tokens in cache" width="100%">
-</p>
-
-The card shows how long you've been idle, how many tokens are in the cache, and what the next message costs on each model. Your model is marked **YOU**.
-
-<p align="center">
-  <img src="assets/screenshot-3-cold.png" alt="The cold card: 1h 12m idle, next message costs on each model" width="100%">
-</p>
+The card shows how long you've been idle, how many tokens are in the cache, and what the next message costs on each model. Your model is marked **YOU**. See [Up close](#up-close) below.
 
 ### Fits any width
 
@@ -125,9 +123,25 @@ Run the tests:
 claude plugin test ./ribbon
 ```
 
+## Up close
+
+Click **Show** and the band opens into the cache card.
+
+**Warm.** The cache is live. Your next message is cheap.
+
+<p align="center">
+  <img src="assets/detail-warm.png" alt="Warm cache card: 6m idle, 245k tokens in cache, next message $0.05 on Opus" width="100%">
+</p>
+
+**Cold.** The hour has passed. Your next message re-sends the whole chat, so it costs more.
+
+<p align="center">
+  <img src="assets/detail-cold.png" alt="Cold cache card: 16h 8m idle, 243k tokens to re-cache, next message $1.94 on Opus" width="100%">
+</p>
+
 ## License
 
-[CC BY 4.0](LICENSE). Use it, change it, share it. Keep the credit.
+[CC BY 4.0](LICENSE).
 
 The embedded font is [Outfit](https://github.com/Outfitio/Outfit-Fonts), under the SIL Open Font License 1.1.
 
