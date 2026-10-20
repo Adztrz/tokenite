@@ -1,11 +1,11 @@
 {
   "name": "ribbon",
-  "version": "0.1.0",
-  "description": "A model x effort ribbon for Claude Code. /picker opens it, one pick sets the model and effort of every reply.",
+  "version": "1.0.0",
+  "description": "A slim band above the prompt: how much of your 5-hour and 7-day usage is left, when each resets, and whether the prompt cache is warm or cold with what the next message costs.",
   "author": { "name": "Jay E", "url": "https://robonuggets.com" },
   "homepage": "https://github.com/robonuggets/ribbon",
   "repository": "https://github.com/robonuggets/ribbon",
   "license": "CC-BY-4.0",
-  "keywords": ["model", "effort", "picker", "ribbon", "mod", "claude-code"],
+  "keywords": ["usage", "rate-limit", "prompt-cache", "cost", "status", "mod", "claude-code"],
   "types": "./types/index.d.ts"
 }

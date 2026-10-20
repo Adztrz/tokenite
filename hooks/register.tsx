@@ -1,177 +1,338 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { GridPick } from '../types'
+import type { CacheFacts, Fold, Window } from '../types'
+import {
+  BG, EMPTY, HUE, INK, MUTED, ORANGE, ROBO_SIZE, TEXT, TTL_MIN, TTL_MS, WORD, YELLOW,
+  bandPx, cardSvg, chipSvg, costOf, familyOf, fmtIdle, kindOf, mineModel, roboSvg, usd,
+} from './cache-art'
+import type { CacheView } from './cache-art'
 
-// The Agentic OS skills-widget picker (MODEL x EFFORT) as a pane above the chat
-// box. A pick rewrites the model and effort of every main-loop request, so it
-// wins over the app's own picker until "hand back" turns it off. Subagents keep
-// whatever model they were started on.
+// A band above the prompt in a warm dark look: card surface, cream text,
+// dot-matrix bars. Shows how much of each usage window is LEFT, 7-day first, then
+// 5-hour; 7D is orange, 5H is yellow; a window under 15% adds a bold LOW.
+//
+// After the first reply it also shows the prompt cache: WARM (red, Robo bobbing)
+// for an hour after the last request, then COLD (blue, Robo frozen) with what the
+// next message costs to re-cache. Hide / Show folds the card; warm starts folded,
+// cold starts open, and a choice holds until the cache flips. Zero token cost:
+// it reads the engine's own figures and draws.
 
-const PANE = 'ribbon'
-const STORE_KEY = 'pick'
+const CELLS = 10
+const LOW_AT = 15
+const TIGHT_CELLS = 6
+/** How often the band redraws, so the countdown and the warm-to-cold flip stay current. */
+const TICK_MS = 30_000
 
-const MODELS = ['HAIKU', 'SONNET', 'OPUS', 'FABLE'] as const
-const MODEL_IDS = ['claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5', 'claude-fable-5-1'] as const
-const MODEL_COL = ['#2aa88a', '#3f8fd4', '#9a66e0', '#ff6b1a'] as const
-const EFFORTS = ['LOW', 'MEDIUM', 'HIGH', 'XHIGH', 'MAX'] as const
-const EFFORT_IDS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
+const windows = atom({ plugin: 'ribbon', key: 'windows' } as const, [] as Window[])
+const cache = atom({ plugin: 'ribbon', key: 'cache' } as const, null as CacheFacts | null)
+const fold = atom({ plugin: 'ribbon', key: 'fold' } as const, null as Fold | null)
 
-/** The OS card's dark palette. */
-const BG = '#1c1b19'
-const TEXT = '#e8e2d2'
-const MUTED = '#8d8775'
+const NAMES: Record<string, string> = { seven_day: '7D', five_hour: '5H', spend_limit: 'SPEND' }
+const ORDER: Record<string, number> = { seven_day: 0, five_hour: 1 }
+const COLORS: Record<string, string> = { seven_day: ORANGE, five_hour: YELLOW }
 
-/** Cells: the model label column, then one column per effort. */
-const LBL_W = 10
-const COL_W = 9
+const clean = (list: readonly Window[]): Window[] =>
+  list
+    .map(w => ({ kind: w.kind, percentUsed: w.percentUsed, resetsAt: w.resetsAt }))
+    .sort((a, b) => (ORDER[a.kind] ?? 9) - (ORDER[b.kind] ?? 9))
 
-const OFF: GridPick = { isOn: false, model: 2, effort: 2, mem: [-1, -1, -1, -1] }
-
-const pick = atom({ plugin: 'ribbon', key: 'pick' } as const, OFF)
-
-const isPick = (v: unknown): v is GridPick => {
-  if (v === null || typeof v !== 'object') return false
-  const p = v as GridPick
-  return (
-    typeof p.isOn === 'boolean' &&
-    Number.isInteger(p.model) && p.model >= 0 && p.model < MODELS.length &&
-    Number.isInteger(p.effort) && p.effort >= 0 && p.effort < EFFORTS.length &&
-    Array.isArray(p.mem) && p.mem.length === MODELS.length
-  )
+const dots = (left: number, cells: number): { on: string; off: string } => {
+  const n = Math.max(0, Math.min(cells, Math.round((left / 100) * cells)))
+  return { on: '●'.repeat(n), off: '·'.repeat(cells - n) }
 }
 
-const label = (p: GridPick): string => `${MODELS[p.model]} · ${EFFORTS[p.effort]}`
-
-const save = async ($: EngineInterface): Promise<void> => {
-  const p = await read($, pick)
-  $.ui.status(p.isOn ? `◆ ${label(p)}` : undefined)
-  await $.store.set(STORE_KEY, p)
+const fmtReset = (iso: string | undefined, now: number): string => {
+  if (!iso) return ''
+  const ms = Date.parse(iso) - now
+  if (Number.isNaN(ms)) return ''
+  if (ms <= 0) return 'resetting'
+  const mins = Math.round(ms / 60000)
+  if (mins < 60) return `${mins}m`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ${mins % 60}m`
+  return `${Math.floor(hours / 24)}d ${hours % 24}h`
 }
 
-/** As the OS adjuster: moving to another row remembers the effort the old row had. */
-const choose = async ($: EngineInterface, model: number, effort: number): Promise<void> => {
-  await update($, pick, p => {
-    const mem = [...p.mem]
-    if (p.isOn && model !== p.model) mem[p.model] = p.effort
-    return { isOn: true, model, effort, mem }
-  })
-  await save($)
+/** What the cache drawings read, or null until a request and its context size are known. */
+export const viewOf = (c: CacheFacts | null, now: number): CacheView | null => {
+  if (!c || c.lastAt <= 0 || c.tokens <= 0) return null
+  const idleMs = Math.max(0, now - c.lastAt)
+  return {
+    mode: idleMs >= TTL_MS ? 'cold' : 'warm',
+    idle: fmtIdle(idleMs),
+    idleMin: Math.floor(idleMs / 60000),
+    tokens: c.tokens,
+    window: c.window,
+    mine: familyOf(c.model),
+  }
 }
 
-const handBack = async ($: EngineInterface): Promise<void> => {
-  await update($, pick, p => ({ ...p, isOn: false }))
-  await save($)
+const pull = async ($: EngineInterface): Promise<void> => {
+  const u = await $.session.usage()
+  await update($, windows, () => clean(u.rateLimits))
+}
+
+/** Fresh context figures from the engine onto the cache facts, when it has them. */
+const measure = async ($: EngineInterface, lastAt: number | null, model: string | null): Promise<void> => {
+  const u = await $.session.usage()
+  const m = model ?? (await $.session.model())
+  await update($, cache, c => ({
+    lastAt: lastAt ?? c?.lastAt ?? 0,
+    tokens: u.context.tokens && u.context.tokens > 0 ? u.context.tokens : (c?.tokens ?? 0),
+    window: u.context.window || c?.window || 0,
+    model: m || c?.model || null,
+  }))
 }
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
-    await $.command.register({
-      name: 'picker',
-      description: 'Pick the model and effort on the Agentic OS grid (/picker off hands back to the app)',
-    })
-    const saved = await $.store.get(STORE_KEY)
-    if (isPick(saved)) await update($, pick, () => saved)
-    const p = await read($, pick)
-    $.ui.status(p.isOn ? `◆ ${label(p)}` : undefined)
+    await pull($)
+    $.clock.every(TICK_MS, () => $.ui.invalidate('ui.render'))
     return next(e)
   })
 
-  on('command.run', { command: 'picker' }, async ($, e) => {
-    if (e.args.trim().toLowerCase() === 'off') {
-      await handBack($)
-      return { text: "Model grid off. The app's picker decides again." }
+  on('session.measure', async ($, e, next) => {
+    if (e.changed.includes('rateLimits')) {
+      await update($, windows, () => clean(e.rateLimits))
     }
-    const opened = await $.ui.open({ id: PANE, title: 'Model × Effort', focus: true, closeOnEscape: true, rows: 9 })
-    const p = await read($, pick)
-    const now = p.isOn ? `Running on ${label(p)}.` : "Off: the app's picker decides."
-    return { text: opened.isPlaced ? `Model grid open. ${now}` : `Model grid could not open here. ${now}` }
+    if (e.changed.includes('context') && e.context.tokens && e.context.tokens > 0) {
+      const tokens = e.context.tokens
+      await update($, cache, c => (c ? { ...c, tokens, window: e.context.window || c.window } : c))
+    }
+    return next(e)
   })
 
-  // Every request of the main conversation goes out on the grid's pick.
+  // A resumed or forked session knows how long it was away and how big it is.
+  on('classic.SessionStart', async ($, e, next) => {
+    const r = await next(e)
+    if (e.source === 'clear' || e.source === 'compact') {
+      await update($, cache, () => null)
+      await update($, fold, () => null)
+    } else if ((e.source === 'resume' || e.source === 'fork') && typeof e.seconds_since_last_response === 'number') {
+      const now = await $.clock.now()
+      const lastAt = now - e.seconds_since_last_response * 1000
+      const window = (await $.session.usage()).context.window
+      const model = typeof e.model === 'string' ? e.model : await $.session.model()
+      const tokens = typeof e.context_tokens === 'number' ? e.context_tokens : 0
+      await update($, cache, () => ({ lastAt, tokens, window, model }))
+    }
+    return r
+  }).catch(($, e, next) => next(e)) // a band that fails to seed never holds up the session
+
+  // Each main-thread request reads or writes the cache, so its start resets the hour.
   on('turn.step', async function* ($, e, next) {
-    const p = await read($, pick)
-    if (e.agentId !== undefined || !p.isOn) return yield* next(e)
-    return yield* next({ ...e, model: MODEL_IDS[p.model] ?? e.model, effort: EFFORT_IDS[p.effort] ?? e.effort })
+    if (!e.agentId) {
+      const now = await $.clock.now()
+      await update($, cache, c => ({ lastAt: now, tokens: c?.tokens ?? 0, window: c?.window ?? 0, model: c?.model ?? null }))
+    }
+    yield* next(e)
   })
 
-  on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const { Box, Text, Button } = $.ui.resolve(e)
-    const p = await read($, pick)
-    const appModel = await $.session.model()
+  on('turn.complete', async ($, e, next) => {
+    const r = await next(e)
+    if (e.agentId) return r
+    const now = await $.clock.now()
+    const c = await read($, cache)
+    // turn.step stamps the exact request time; when no step of this turn did, the turn's end is the floor.
+    const lastAt = !c || now - c.lastAt > e.durationMs ? now : c.lastAt
+    await measure($, lastAt, e.usage?.model ?? null)
+    return r
+  })
 
-    const cell = (m: number, x: number) => {
-      const isRow = p.isOn && m === p.model
-      const isKnob = isRow && x === p.effort
-      const isMem = !isRow && p.mem[m] === x
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (e.props.hasSurvey) return next(e)
+
+    const ui = $.ui.resolve(e)
+    const { Box, Button, Text } = ui
+    // Svg draws on desktop, mobile and VS Code; the terminal gets the text form.
+    // Ask the surface, not the table: the terminal's table still lists Svg.
+    const Svg = e.surface !== 'terminal' && 'Svg' in ui ? ui.Svg : null
+    const list = await read($, windows)
+    const now = await $.clock.now()
+    const view = viewOf(await read($, cache), now)
+
+    if (list.length === 0 && !view) {
       return (
-        <Box key={`cell-${m}-${x}`} width={COL_W} justifyContent="center">
-          <Button
-            key={`pick-${m}-${x}`}
-            plain
-            dimColor={!isKnob}
-            label={isKnob ? '●' : isMem ? '○' : '•'}
-            onPress={() => void choose($, m, x)}
-          />
+        <Box backgroundColor={BG} paddingX={1}>
+          <Text color={MUTED}>USAGE · waiting for the first reply</Text>
         </Box>
       )
     }
 
-    const row = (name: string, m: number) => {
-      const isRow = p.isOn && m === p.model
-      const cells = EFFORTS.map((_, x) => cell(m, x))
-      const parts = isRow
-        ? [
-            <Box key={`pill-${m}`} flexDirection="row" backgroundColor={MODEL_COL[m]}>
-              {cells.slice(0, p.effort + 1)}
-            </Box>,
-            ...cells.slice(p.effort + 1),
-          ]
-        : cells
+    const columns = e.props.bodyColumns ?? e.viewport?.columns ?? 100
+    const kind = kindOf(columns)
+    const isWide = kind === 'wide'
+    const cells = kind === 'tight' ? TIGHT_CELLS : CELLS
+
+    const parts = (w: Window) => {
+      const left = Math.max(0, Math.round((100 - w.percentUsed) * 10) / 10)
+      return {
+        left,
+        col: COLORS[w.kind] ?? TEXT,
+        name: NAMES[w.kind] ?? w.kind.toUpperCase(),
+        d: dots(left, cells),
+        reset: fmtReset(w.resetsAt, now),
+      }
+    }
+
+    // Wide: every window on one row. Narrow: each window is a block of three
+    // lines (name and dots, percent left, reset time) so nothing wraps or clips.
+    const wide = (w: Window, i: number) => {
+      const p = parts(w)
       return (
-        <Box key={`row-${m}`} flexDirection="row" alignItems="center">
-          <Box width={LBL_W}>
-            <Text color={isRow ? MODEL_COL[m] : MUTED} bold={isRow}>
-              {name}
-            </Text>
+        <Box key={`w-${i}`} flexDirection="row" flexShrink={0} marginRight={3}>
+          <Text color={MUTED} bold>{p.name} </Text>
+          <Text color={p.col}>{p.d.on}</Text>
+          <Text color={EMPTY}>{p.d.off}</Text>
+          <Text color={p.col} bold> {p.left}% left</Text>
+          {p.left < LOW_AT ? <Text color={TEXT} bold> LOW</Text> : null}
+          {p.reset ? <Text color={MUTED}> · {p.reset}</Text> : null}
+        </Box>
+      )
+    }
+
+    const stacked = (w: Window, i: number) => {
+      const p = parts(w)
+      return (
+        <Box key={`w-${i}`} flexDirection="column" flexShrink={0} marginRight={3}>
+          <Box flexDirection="row">
+            <Text color={MUTED} bold>{p.name} </Text>
+            <Text color={p.col}>{p.d.on}</Text>
+            <Text color={EMPTY}>{p.d.off}</Text>
           </Box>
-          {parts}
+          <Box flexDirection="row">
+            <Text color={p.col} bold>{p.left}% left</Text>
+            {p.left < LOW_AT ? <Text color={TEXT} bold> LOW</Text> : null}
+          </Box>
+          {p.reset ? <Text color={MUTED}>resets {p.reset}</Text> : null}
+        </Box>
+      )
+    }
+
+    const label = (
+      <Box key="label" flexShrink={0} marginRight={isWide ? 2 : 3}>
+        <Text color={TEXT} bold>USAGE</Text>
+      </Box>
+    )
+    const usage = list.length > 0
+      ? list.map(isWide ? wide : stacked)
+      : [<Box key="wait" flexShrink={0} marginRight={3}><Text color={MUTED}>waiting for the first reply</Text></Box>]
+
+    // Before the first reply there is no cache to show: today's band, as it was.
+    if (!view) {
+      return (
+        <Box flexDirection="row" backgroundColor={BG} paddingX={1}>
+          {label}
+          {usage}
+        </Box>
+      )
+    }
+
+    const mode = view.mode
+    const cold = mode === 'cold'
+    const hue = HUE[mode]
+    const mine = mineModel(view)
+    const stored = await read($, fold)
+    // Folding needs the card, and the card is a drawing: the terminal stays folded.
+    const open = Svg !== null && (stored && stored.mode === mode ? stored.open : cold)
+    const toggle = () =>
+      update($, fold, f => ({ mode, open: !(f && f.mode === mode ? f.open : mode === 'cold') }))
+
+    const badge = Svg
+      ? [
+          <Svg key="robo" source={roboSvg(mode)} alt={cold ? 'Robo, frozen' : 'Robo, bobbing'} width={ROBO_SIZE} height={ROBO_SIZE} isInteractive />,
+          <Text key="gap"> </Text>,
+          (() => {
+            const c = chipSvg(mode)
+            return <Svg key="chip" source={c.source} alt={WORD[mode]} width={c.w} height={c.h} />
+          })(),
+        ]
+      : [<Text key="chip" backgroundColor={hue} color={INK} bold>{` ${WORD[mode]} `}</Text>]
+
+    const summary = cold
+      ? [
+          <Text key="idle" color={hue} bold>{` ${view.idle}`}</Text>,
+          mine ? <Text key="dot" color={MUTED}> · </Text> : null,
+          mine ? <Text key="cost" color={TEXT} bold>{usd(costOf(mine, mode, view.tokens))}</Text> : null,
+        ]
+      : [<Text key="left" color={hue} bold>{` ${Math.max(0, TTL_MIN - view.idleMin)}m left`}</Text>]
+
+    const button = Svg ? (
+      <Box key="fold" flexShrink={0} alignItems="flex-start">
+        <Button key="cache-fold" label={open ? 'Hide' : 'Show'} onPress={toggle} />
+      </Box>
+    ) : null
+    const grow = <Box key="grow" flexGrow={1} />
+
+    let rows
+    if (kind === 'wide') {
+      rows = (
+        <Box key="row" flexDirection="row" paddingX={1} alignItems="center">
+          {label}
+          {usage}
+          {open ? null : (
+            <Box key="inline" flexDirection="row" flexShrink={0} marginRight={2} alignItems="center">
+              {badge}
+              {summary}
+            </Box>
+          )}
+          {grow}
+          {button}
+        </Box>
+      )
+    } else if (kind === 'stacked') {
+      // The cache becomes a third stacked block, the same shape as 7D and 5H.
+      rows = (
+        <Box key="row" flexDirection="row" paddingX={1}>
+          {label}
+          {usage}
+          {open ? null : (
+            <Box key="block" flexDirection="column" flexShrink={0} marginRight={2}>
+              <Box flexDirection="row" alignItems="center">{badge}</Box>
+              <Text color={hue} bold>{cold ? `${view.idle} idle` : `${Math.max(0, TTL_MIN - view.idleMin)}m left`}</Text>
+              {mine ? (
+                <Box flexDirection="row">
+                  <Text color={TEXT} bold>{usd(costOf(mine, mode, view.tokens))}</Text>
+                  <Text color={MUTED}> next</Text>
+                </Box>
+              ) : null}
+            </Box>
+          )}
+          {grow}
+          {button}
+        </Box>
+      )
+    } else {
+      // Narrow: the cache gets its own row under the usage blocks.
+      rows = [
+        <Box key="row" flexDirection="row" paddingX={1}>
+          {label}
+          {usage}
+        </Box>,
+        <Box key="cache" flexDirection="row" paddingX={1} alignItems="center">
+          {badge}
+          {summary}
+          {grow}
+          {button}
+        </Box>,
+      ]
+    }
+
+    let card = null
+    if (open && Svg) {
+      const c = cardSvg(view, kind, bandPx(columns))
+      card = (
+        <Box key="card" flexDirection="row">
+          <Svg source={c.source} alt={c.alt} width={c.w} height={c.h} isInteractive={kind !== 'tight'} />
         </Box>
       )
     }
 
     return (
-      <Box flexDirection="column" backgroundColor={BG} paddingX={2} paddingY={1}>
-        <Box flexDirection="row" justifyContent="space-between" alignItems="center" marginBottom={1}>
-          <Text>
-            <Text color={TEXT} bold>
-              /model
-            </Text>
-            <Text color={MUTED}> · MODEL × EFFORT</Text>
-          </Text>
-          <Button key="close" plain dimColor role="dismiss" label="✕" onPress={() => void $.ui.close({ id: PANE })} />
-        </Box>
-        <Box flexDirection="row">
-          <Box width={LBL_W} />
-          {EFFORTS.map((n, x) => (
-            <Box key={`head-${x}`} width={COL_W} justifyContent="center">
-              <Text color={MUTED}>{n}</Text>
-            </Box>
-          ))}
-        </Box>
-        {MODELS.map((n, m) => row(n, m))}
-        {p.isOn ? (
-          <Box flexDirection="row" alignItems="center" gap={2} marginTop={1}>
-            <Text color={MUTED}>
-              Every reply runs on {MODELS[p.model]} at {EFFORTS[p.effort]}.
-            </Text>
-            <Button key="hand-back" plain dimColor label="hand back to the app's picker" onPress={() => void handBack($)} />
-          </Box>
-        ) : (
-          <Box marginTop={1}>
-            <Text color={MUTED}>Off: the app's picker decides ({appModel}). Pick a dot to take over.</Text>
-          </Box>
-        )}
+      <Box flexDirection="column" backgroundColor={BG}>
+        {rows}
+        {card}
       </Box>
     )
   })

@@ -4,17 +4,38 @@
 
 # ribbon
 
-A free mod for Claude Code. It puts a model by effort ribbon above your prompt. Pick one dot, and every reply in the main chat runs on that model at that effort.
+A free mod for Claude Code. It adds a slim band above your prompt that shows:
 
-No menus. No typing model names. One dot.
+- **How much usage you have left** in your 7-day and 5-hour windows, and when each one resets.
+- **Whether your prompt cache is warm or cold**, and what your next message will cost.
+
+It installs once and is there in every session after that. No commands to learn.
 
 <p align="center">
-  <img src="assets/screenshot-2-pick.png" alt="The ribbon with Sonnet at Medium picked" width="100%">
+  <img src="assets/screenshot-1-folded.png" alt="ribbon above the prompt: 7D 41% left, 5H 100% left, cache warm with 52 minutes left" width="100%">
 </p>
 
 ## Install
 
-You need Claude Code with mods turned on. This is the one-line install.
+The easy way: send this link to your agent and say "install this".
+
+```
+https://github.com/robonuggets/ribbon
+```
+
+Your agent runs one command. The band shows up in your next session.
+
+### For agents
+
+If you are an agent and your user asked you to install this, run this in a shell:
+
+```
+claude plugin install ribbon --marketplace robonuggets/ribbon
+```
+
+It installs for the user (all their projects) and adds the marketplace on its own. Then tell your user: "Ribbon is installed. Start a new session to see the band above your prompt." Do not edit their settings file by hand.
+
+### By hand
 
 In a Claude Code terminal session, type:
 
@@ -22,64 +43,50 @@ In a Claude Code terminal session, type:
 /plugin install ribbon --marketplace robonuggets/ribbon
 ```
 
-Or run it from a shell:
-
-```
-claude plugin install ribbon --marketplace robonuggets/ribbon
-```
-
-Then:
-
 1. Type `y` when it asks `Add marketplace?`.
 2. Pick the **user** scope with Enter.
-3. Wait for `Installed ribbon. Plugin is now active.`
+3. Start a new session.
 
-It works in that session right away. It also loads in every session you start after that.
+## What you see
 
-If you use the desktop app, `/plugin` does not run there. Click **+** next to the prompt box, then **Plugins**, then **Add marketplace**, and enter `robonuggets/ribbon`. Then click **Add plugin**.
+### Usage left
 
-### For agents
+- **7D** (orange) is your 7-day window. **5H** (yellow) is your 5-hour window.
+- Each dot bar shows what is **left**, not what is used.
+- Under each one is when it resets, for example `resets 3d 9h`.
+- If a window drops under 15%, a bold **LOW** shows next to it.
 
-If you are an agent installing this for a user, run the shell line above. Then tell the user to restart their session if `/picker` is not listed. Do not edit their settings file by hand.
+### The prompt cache
 
-## Use it
+After your first reply, the band also tracks the prompt cache. The cache keeps your chat cheap to continue for one hour after your last message.
 
-1. Type `/picker`. The ribbon opens above the prompt.
-2. Click a dot (or press it). The row is the model. The column is the effort.
-3. Send your next message. It runs on your pick.
+- **WARM** (red, the robot bobs): the cache is live. It shows the minutes left and what your next message costs.
+- **COLD** (blue, the robot is frozen): the hour has passed. Your next message re-sends the whole chat, so it costs more. It shows the price first.
 
-<p align="center">
-  <img src="assets/screenshot-1-open.png" alt="The ribbon when it is off" width="100%">
-</p>
-
-To give control back to the app, type `/picker off`. You can also click **hand back to the app's picker** in the ribbon.
-
-Your pick is saved. It is still there next session. The status line shows it, for example `◆ SONNET · MEDIUM`.
-
-### Switching models remembers your effort
-
-If you move from one model to another, the ribbon remembers the effort the old row had. It shows it as a hollow dot (○). Move back and your old effort is a click away.
+Click **Show** to open the cache card, and **Hide** to fold it. Warm starts folded. Cold starts open, so you see the price before you send.
 
 <p align="center">
-  <img src="assets/screenshot-3-switch.png" alt="Fable at Max picked, with Sonnet's old Medium remembered" width="100%">
+  <img src="assets/screenshot-2-open.png" alt="The open cache card: warm, 9 minutes idle, 203k tokens in cache" width="100%">
 </p>
 
-## What it changes (and what it does not)
+The card shows how long you've been idle, how many tokens are in the cache, and what the next message costs on each model. Your model is marked **YOU**.
 
-- It changes the model and effort of every request in your main chat.
-- It does not change subagents. They keep the model they were started on.
-- It wins over the app's own model picker until you hand back.
+<p align="center">
+  <img src="assets/screenshot-3-cold.png" alt="The cold card: 1h 12m idle, next message costs on each model" width="100%">
+</p>
 
-## Models in the ribbon
+### Fits any width
 
-| Row | Model ID |
-| --- | --- |
-| HAIKU | `claude-haiku-5-5` |
-| SONNET | `claude-sonnet-5-5` |
-| OPUS | `claude-opus-5-5` |
-| FABLE | `claude-fable-5-1` |
+- **Wide:** everything on one row.
+- **Half width:** each window stacks into a small block.
+- **Narrow:** the cache moves to its own row.
+- **Terminal:** the same facts as plain text.
 
-Columns are `low`, `medium`, `high`, `xhigh` and `max`. If a model ID changes, edit `MODEL_IDS` at the top of `hooks/register.tsx`.
+## Good to know
+
+- **It costs nothing to run.** It reads the app's own numbers and draws them. It never calls a model.
+- **Prices are estimates.** They come from a price table in `hooks/cache-art.ts` (`MODELS`), not from your bill. If prices change, edit that table.
+- **Subagents don't count.** Only your main chat resets the cache clock.
 
 ## What is inside
 
@@ -90,18 +97,18 @@ ribbon/
 │   └── marketplace.json    makes this repo installable
 ├── hooks/
 │   ├── hooks.json          points to the module
-│   └── register.tsx        the ribbon, the /picker command, the model rewrite
-├── types/index.d.ts        the type of the saved pick
-├── tests/grid.test.ts      a test: press a dot, check the request
+│   ├── register.tsx        the band: usage, cache tracking, layout
+│   ├── cache-art.ts        the cache card and robot drawings, the price table
+│   └── font.ts             Outfit, embedded so the drawings render anywhere
+├── types/index.d.ts        the shape of what the band remembers
+├── tests/                  7 tests: layouts, warm and cold, terminal, cleared sessions
 └── assets/                 banner, screenshots, hex icon
 ```
-
-The screenshots are rendered from the ribbon's own layout, colours and glyphs in `hooks/register.tsx`.
 
 ## Remove it
 
 ```
-/plugin uninstall ribbon
+claude plugin uninstall ribbon
 ```
 
 ## Develop it
@@ -112,7 +119,7 @@ Load the folder without installing it:
 claude --plugin-dir ./ribbon
 ```
 
-Run the test:
+Run the tests:
 
 ```
 claude plugin test ./ribbon
@@ -121,6 +128,8 @@ claude plugin test ./ribbon
 ## License
 
 [CC BY 4.0](LICENSE). Use it, change it, share it. Keep the credit.
+
+The embedded font is [Outfit](https://github.com/Outfitio/Outfit-Fonts), under the SIL Open Font License 1.1.
 
 Made by Jay E from RoboLabs. Learn more at [RoboNuggets](https://robonuggets.com).
 
