@@ -8,12 +8,14 @@ export type Kind = 'wide' | 'stacked' | 'tight'
 
 // The band's colours: the Talos palette (Faust's), in the structure of Column's
 // design. Bone is the one primary (the 7-day bar); status colours only for status.
-export const BG = '#090b0c'      // card: one step above the page
+// The background is the app's own band slot (measured, dark theme), so the band
+// sits flush in its frame; the dots and lines are lifted to read on it.
+export const BG = '#232323'      // the app's band slot
 export const TEXT = '#efefed'    // values
 export const BODY = '#b3b0af'    // body text, the 5-hour bar
 export const MUTED = '#8a8b8a'   // labels
-export const EMPTY = '#363738'   // unlit dots
-export const LINE = '#262727'    // hairlines inside the card
+export const EMPTY = '#474849'   // unlit dots
+export const LINE = '#363738'    // hairlines inside the card (Talos border)
 export const BONE = '#e9e1dc'    // the primary: the 7-day bar
 export const ALERT = '#f12614'   // LOW
 
