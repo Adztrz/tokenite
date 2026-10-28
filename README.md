@@ -14,8 +14,8 @@ A free, open-source mod for Claude Code. It adds one slim band above your prompt
 
 | | **Usage** | **Prompt cache** |
 |---|---|---|
-| What | How much of your 7-day and 5-hour windows is **left**, and when each resets | Whether the cache is **warm** or **cold**, and what your next message costs |
-| Where it comes from | The app's own rate-limit figures | The time of your last request and the size of your chat |
+| What | How much of your 7-day and 5-hour windows is **left**, when each resets, and **when you'll run out** at your current pace | Whether the cache is **warm** or **cold**, what your next message costs, a **warning before it goes cold**, and **what you've spent** today |
+| Where it comes from | The app's own rate-limit figures | The time of your last request, the size of your chat, and the session's `/cost` total |
 | Cost | Nothing: it never calls a model | Nothing |
 
 It installs once and shows in every session after that. No commands to learn.
@@ -46,13 +46,17 @@ claude plugin install tokenite --marketplace Adztrz/tokenite
 - Each dot bar shows what is **left**, not what is used.
 - Next to each one is when it resets, for example `· 3d 9h`.
 - Under 15% left, a bold **LOW** appears.
+- **Forecast:** if you're on pace to use a window up before it resets, the reset time is replaced by when you'll run out, for example `· out ~1h 40m`. The pace is read from the last hour of readings and carries over between sessions.
 
 ### ● The prompt cache
 
 After your first reply the band also tracks the prompt cache, which keeps your chat cheap to continue for one hour after your last request.
 
-- **WARM** (red, the mark bobs): the cache is live. It shows the minutes left.
-- **COLD** (blue, the mark is frozen in ice): the hour has passed. Your next message re-sends the whole chat, so it costs more. The price shows first.
+- **WARM** (orange, the tower bobs): the cache is live. It shows the minutes left.
+- **COLD** (blue, the tower is frozen in ice): the hour has passed. Your next message re-sends the whole chat, so it costs more. The price shows first.
+- **The tower is a gauge.** It stands as full as your 5-hour window has left, and drains as you work.
+- **Heads-up before it goes cold.** Five minutes before the hour is up, a toast says what sending now saves, for example *"Cache goes cold in 5m. Send now and the next message costs $0.04, not $1.46."*
+- **Spend.** The card's footer shows what this session and today have cost so far. Today's total adds up across all your sessions.
 
 Click **Show** to open the cache card and **Hide** to fold it. Warm starts folded; cold starts open, so you see the price before you send.
 
@@ -73,7 +77,8 @@ Click **Show** to open the cache card and **Hide** to fold it. Warm starts folde
 
 ## Good to know
 
-- **Prices are estimates.** They come from the `MODELS` table in `hooks/cache-art.ts`, not from your bill. If prices change, edit that table.
+- **Prices are estimates.** Next-message prices come from the `MODELS` table in `hooks/cache-art.ts`, not from your bill. If prices change, edit that table.
+- **Spend is what `/cost` reports.** On a subscription that's what the same use would cost on the API, not what you're charged.
 - **Subagents don't count.** Only your main chat resets the cache clock.
 
 ## What is inside
@@ -86,10 +91,12 @@ tokenite/
 ├── hooks/
 │   ├── hooks.json          points to the module
 │   ├── register.tsx        the band: usage, cache tracking, layout
-│   ├── cache-art.ts        colours, the mark, the cache card, the price table
+│   ├── cache-art.ts        colours, the tower gauge, the cache card, the price table
+│   ├── forecast.ts         when a window runs out at your current pace
+│   ├── spend.ts            today's spend across sessions
 │   └── font.ts             Outfit, embedded so the drawings render anywhere
 ├── types/index.d.ts        the shape of what the band remembers
-├── tests/                  7 tests: layouts, warm and cold, terminal, cleared sessions
+├── tests/                  12 tests: layouts, warm and cold, terminal, forecast, warning, spend
 └── assets/                 banner, mark, cache card renders
 ```
 

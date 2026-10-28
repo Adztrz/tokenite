@@ -29,8 +29,8 @@ for (let y = 24; y < H; y += 16) for (let x = 760; x < W; x += 16) {
 g += `<g transform="translate(81 92) scale(1.45)">${MARK(C.bone)}</g>`
 g += `<circle cx="100" cy="214" r="4" fill="${C.bone}"/>` + t(114, 219, 'CLAUDE CODE MOD', { size: 14, w: 500, fill: C.muted, ls: 2.2 })
 g += t(94, 296, 'tokenite', { size: 76, w: 600, fill: C.strong, ls: -2.5 })
-g += t(97, 344, 'Usage left, reset times and a warm or cold prompt cache,', { size: 24, w: 300 })
-g += t(97, 378, 'in one slim band above the prompt.', { size: 24, w: 300 })
+g += t(97, 344, 'Usage left and when it runs out, a warm or cold cache,', { size: 24, w: 300 })
+g += t(97, 378, 'and what it all costs, in one band above the prompt.', { size: 24, w: 300 })
 // A sample band in a card: 8px radius, hairline edge.
 const cx = 96, cy = 430, cw = W - 192, ch = 68
 g += `<rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" rx="8" fill="${C.card}" stroke="${C.border}"/>`

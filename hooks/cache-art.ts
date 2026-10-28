@@ -89,6 +89,10 @@ export type CacheView = {
   window: number
   /** This session's MODELS id, or null when the model isn't priced. */
   mine: string | null
+  /** How full the tower stands, 0 to 1: the 5-hour window left. Absent, full. */
+  level?: number
+  /** What this session and today have cost, for the card's footer. */
+  spend?: { session: number; today: number }
 }
 
 export const mineModel = (v: CacheView): Model | undefined => MODELS.find(m => m.id === v.mine)
@@ -146,8 +150,31 @@ const MARK_W = 58
 const shards = (s: number, fill: string): string =>
   `<g transform="translate(${29 * s} 0) scale(${(56 * s) / 620})"><path d="${LOGO}" fill="${fill}"/></g>`
 
-/** The mark in a box `size` pixels square, top-left at x, y. SMIL only, so the Svg needs isInteractive. */
-export const markShapes = (x: number, y: number, size: number, mode: Mode): string => {
+/**
+ * The tower as a gauge, like a vessel in a lab: a faint shell, filled from the
+ * bottom to `level` (0 to 1), its surface gently moving. `id` names the clip, one
+ * per drawing.
+ */
+const gauge = (s: number, fill: string, level: number, id: string): string => {
+  const top = 620 * (1 - Math.max(0, Math.min(1, level)))
+  const wave = (y: number) => `<animate attributeName="y" values="${y};${y - 10};${y}" dur="2.4s" repeatCount="indefinite"/>`
+  const deep = (h: number) => `<animate attributeName="height" values="${h};${h + 10};${h}" dur="2.4s" repeatCount="indefinite"/>`
+  return (
+    `<g transform="translate(${29 * s} 0) scale(${(56 * s) / 620})">` +
+    `<clipPath id="${id}"><path d="${LOGO}"/></clipPath>` +
+    `<path d="${LOGO}" fill="${fill}" fill-opacity=".2" stroke="${fill}" stroke-opacity=".55" stroke-width="16"/>` +
+    `<g clip-path="url(#${id})">` +
+    `<rect x="-230" y="${top}" width="460" height="${620 - top}" fill="${fill}">${top > 0 ? wave(top) + deep(620 - top) : ''}</rect>` +
+    (top > 0 && top < 620 ? `<rect x="-230" y="${top}" width="460" height="18" fill="#fff" fill-opacity=".4">${wave(top)}</rect>` : '') +
+    '</g></g>'
+  )
+}
+
+/**
+ * The mark in a box `size` pixels square, top-left at x, y, filled to `level`.
+ * SMIL only, so the Svg needs isInteractive.
+ */
+export const markShapes = (x: number, y: number, size: number, mode: Mode, level = 1, id = 'tk'): string => {
   const ease = 'calcMode="spline" keyTimes="0;0.5;1" keySplines=".45 0 .55 1;.45 0 .55 1"'
   if (mode === 'warm') {
     // The mark takes the WARM chip's red, so the two read as one badge.
@@ -160,7 +187,7 @@ export const markShapes = (x: number, y: number, size: number, mode: Mode): stri
       `<ellipse cx="${4 * u}" cy="${8.5 * u}" rx="${3 * u}" ry="${0.42 * u}" fill="#000" opacity=".4" shape-rendering="auto">` +
       `<animate attributeName="rx" values="${3 * u};${2.3 * u};${3 * u}" dur="1.2s" repeatCount="indefinite" ${ease}/></ellipse>` +
       `<g><animateTransform attributeName="transform" type="translate" values="0 0;0 ${-1.1 * u};0 0" dur="1.2s" repeatCount="indefinite" ${ease}/>` +
-      shards((8 * u) / MARK_W, FILL) +
+      gauge((8 * u) / MARK_W, FILL, level, id) +
       // A glint every few seconds: the tower lights up for a moment.
       `<g opacity="0">${shards((8 * u) / MARK_W, '#fff')}` +
       `<animate attributeName="opacity" values="0;0;.35;0;0" keyTimes="0;0.86;0.9;0.95;1" dur="3.4s" repeatCount="indefinite"/></g>` +
@@ -177,7 +204,7 @@ export const markShapes = (x: number, y: number, size: number, mode: Mode): stri
   const bw = 10.4 * u
   const bh = 9.4 * u
   let s = `<g transform="translate(${ox} ${oy})">`
-  s += shards((8 * u) / MARK_W, ice)
+  s += gauge((8 * u) / MARK_W, ice, level, id)
   s += `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="${1.5 * u}" fill="${HUE.cold}" fill-opacity=".28" stroke="${ice}" stroke-width="${0.38 * u}"/>`
   s += `<path d="M${bx + 0.9 * u} ${by + 2.6 * u}l${1.6 * u} ${-1.6 * u}M${bx + 0.9 * u} ${by + 4.2 * u}l${0.8 * u} ${-0.8 * u}" stroke="#fff" stroke-opacity=".75" stroke-width="${0.32 * u}" stroke-linecap="round"/>`
   for (const ix of [1.4, 4.4, 7.2]) {
@@ -196,7 +223,8 @@ export const markShapes = (x: number, y: number, size: number, mode: Mode): stri
 
 /** The mark beside the chip in the band's row. */
 export const MARK_SIZE = 26
-export const markSvg = (mode: Mode): string => svgDoc(MARK_SIZE, MARK_SIZE, markShapes(0, 0, MARK_SIZE, mode), false)
+export const markSvg = (mode: Mode, level = 1): string =>
+  svgDoc(MARK_SIZE, MARK_SIZE, markShapes(0, 0, MARK_SIZE, mode, level, 'tk-band'), false)
 
 // ---------- The card, laid out for the band's width ----------
 type TextOpts = { size?: number; w?: number; fill?: string; ls?: number; anchor?: string }
@@ -221,7 +249,7 @@ export const cardSvg = (v: CacheView, kind: Kind, W: number): { source: string; 
     const k = o.compact ? { lab: 24, big: 60, bs: 30, line: 80, cap: 100 } : { lab: 30, big: 72, bs: 38, line: 96, cap: 120 }
     let g = ''
     if (o.header) {
-      g += markShapes(x - 2, y + k.lab - 17, 22, mode)
+      g += markShapes(x - 2, y + k.lab - 17, 22, mode, v.level ?? 1, 'tk-card')
       const c = chipShapes(x + 26, y + k.lab - 13, WORD[mode], HUEM, 11, 1)
       g += c.svg + t(x + 26 + c.w + 8, y + k.lab, 'IDLE', { ls: 1.4 })
     } else {
@@ -318,6 +346,14 @@ export const cardSvg = (v: CacheView, kind: Kind, W: number): { source: string; 
       zoneSize(13, 110, W - 26, { compact: true }) +
       hline(180) +
       zoneCost(13, 182, (W - 26) / 4, { compact: true })
+  }
+  // The spend footer: under a hairline, what this session and today have cost.
+  if (v.spend) {
+    g += hline(H + 4) + t(13, H + 26, 'SPENT', { ls: 1.4 })
+    g += `<text x="70" y="${H + 26}" font-size="12" font-weight="500" fill="${MUTED}">` +
+      `<tspan font-weight="700" fill="${TEXT}">~${usd(v.spend.session)}</tspan> this session` +
+      `<tspan dx="10">·</tspan><tspan dx="10" font-weight="700" fill="${TEXT}">~${usd(v.spend.today)}</tspan> today</text>`
+    H += 36
   }
   const h = H + CARD_TOP
   const body = `<rect width="${W}" height="${h}" fill="${BG}"/><g transform="translate(0 ${CARD_TOP})">` + hline(0) + g + '</g>'

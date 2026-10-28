@@ -28,7 +28,7 @@ test('a warm cache shows the mark, the WARM chip and the minutes left, folded', 
   const band = await $.ui.mount({ plugin: 'tokenite', surface: 'desktop', component: 'AbovePrompt', props: PROPS })
   // Drawings keep no key in the kit, so they are found by what they say.
   const alts = (await band.findAll({ type: 'Svg' })).map(s => s.props.alt)
-  expect(alts).toEqual(['Mark, bobbing', 'WARM'])
+  expect(alts).toEqual(['Tower, 82% full, bobbing', 'WARM'])
   expect(await band.find({ text: ' 42m left' })).toBeDefined()
   expect(await band.find({ key: 'card' })).toBeUndefined()
   expect((await band.find({ key: 'cache-fold' }))?.props.label).toBe('Show')

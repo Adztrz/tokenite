@@ -1,12 +1,14 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { CacheFacts, Fold, Window } from '../types'
+import type { CacheFacts, Fold, Ledger, Spend, Trails, Window } from '../types'
 import {
-  ALERT, BG, BODY, PRIMARY, EMPTY, HUE, INK, MUTED, MARK_SIZE, TEXT, TTL_MIN, TTL_MS, WORD,
-  bandPx, cardSvg, chipSvg, costOf, familyOf, fmtIdle, kindOf, mineModel, markSvg, usd,
+  ALERT, BG, BODY, PRIMARY, EMPTY, HUE, INK, MODELS, MUTED, MARK_SIZE, TEXT, TTL_MIN, TTL_MS, WORD,
+  bandPx, cardSvg, chipSvg, coldCost, costOf, familyOf, fmtIdle, kindOf, mineModel, markSvg, usd, warmCost,
 } from './cache-art'
 import type { CacheView } from './cache-art'
+import { addSample, runsOutIn } from './forecast'
+import { dayOf, tally } from './spend'
 
 // A band above the prompt in Claude's palette: ivory and grey text,
 // dot-matrix bars. Shows how much of each usage window is LEFT, 7-day first, then
@@ -17,6 +19,11 @@ import type { CacheView } from './cache-art'
 // next message costs to re-cache. Hide / Show folds the card; warm starts folded,
 // cold starts open, and a choice holds until the cache flips. Zero token cost:
 // it reads the engine's own figures and draws.
+//
+// What tokenite adds: each window says when it runs out at the pace it is being
+// used, when that comes before its reset; the tower fills with the 5-hour window
+// left; a toast warns five minutes before the cache goes cold; and the card counts
+// what this session and today have cost.
 
 const CELLS = 10
 const LOW_AT = 15
@@ -25,10 +32,18 @@ const TIGHT_CELLS = 6
 const SHARED_CELLS = 8
 /** How often the band redraws, so the countdown and the warm-to-cold flip stay current. */
 const TICK_MS = 30_000
+/** How long before the cache goes cold the toast warns. */
+const WARN_MS = 5 * 60 * 1000
 
 const windows = atom({ plugin: 'tokenite', key: 'windows' } as const, [] as Window[])
 const cache = atom({ plugin: 'tokenite', key: 'cache' } as const, null as CacheFacts | null)
 const fold = atom({ plugin: 'tokenite', key: 'fold' } as const, null as Fold | null)
+const trails = atom({ plugin: 'tokenite', key: 'trails' } as const, {} as Trails)
+const warned = atom({ plugin: 'tokenite', key: 'warned' } as const, 0)
+const spend = atom({ plugin: 'tokenite', key: 'spend' } as const, null as Spend | null)
+
+/** This session in the spend ledger: when it began, which a resume keeps. */
+let sessionKey = ''
 
 const NAMES: Record<string, string> = { seven_day: '7D', five_hour: '5H', spend_limit: 'SPEND' }
 const ORDER: Record<string, number> = { seven_day: 0, five_hour: 1 }
@@ -44,16 +59,20 @@ const dots = (left: number, cells: number): { on: string; off: string } => {
   return { on: '●'.repeat(n), off: '·'.repeat(cells - n) }
 }
 
-const fmtReset = (iso: string | undefined, now: number): string => {
-  if (!iso) return ''
-  const ms = Date.parse(iso) - now
-  if (Number.isNaN(ms)) return ''
-  if (ms <= 0) return 'resetting'
+const fmtDur = (ms: number): string => {
   const mins = Math.round(ms / 60000)
   if (mins < 60) return `${mins}m`
   const hours = Math.floor(mins / 60)
   if (hours < 24) return `${hours}h ${mins % 60}m`
   return `${Math.floor(hours / 24)}d ${hours % 24}h`
+}
+
+const fmtReset = (iso: string | undefined, now: number): string => {
+  if (!iso) return ''
+  const ms = Date.parse(iso) - now
+  if (Number.isNaN(ms)) return ''
+  if (ms <= 0) return 'resetting'
+  return fmtDur(ms)
 }
 
 /** What the cache drawings read, or null until a request and its context size are known. */
@@ -73,6 +92,45 @@ export const viewOf = (c: CacheFacts | null, now: number): CacheView | null => {
 const pull = async ($: EngineInterface): Promise<void> => {
   const u = await $.session.usage()
   await update($, windows, () => clean(u.rateLimits))
+  await record($, u.rateLimits)
+}
+
+/** Each window's reading onto its trail, kept in the store so the next session starts with the pace. */
+const record = async ($: EngineInterface, list: readonly Window[]): Promise<void> => {
+  if (list.length === 0) return
+  const now = await $.clock.now()
+  await update($, trails, t => {
+    const next: Trails = { ...t }
+    for (const w of list) next[w.kind] = addSample(t[w.kind] ?? [], now, w.percentUsed)
+    return next
+  })
+  await $.store.set('trails', await read($, trails))
+}
+
+/** A session's /cost total into today's ledger; `baseline` only marks where it starts counting. */
+const count = async ($: EngineInterface, usdNow: number, baseline = false): Promise<void> => {
+  if (!sessionKey) return
+  const ledger = (await $.store.get('ledger')) as Ledger | undefined
+  const next = tally(ledger ?? null, dayOf(await $.clock.now()), sessionKey, usdNow, baseline)
+  await $.store.set('ledger', next)
+  await update($, spend, () => ({ session: usdNow, today: next.usd }))
+}
+
+/** Once per warm spell, a toast five minutes before the cache goes cold. */
+const warn = async ($: EngineInterface): Promise<void> => {
+  const c = await read($, cache)
+  if (!c || c.lastAt <= 0 || c.tokens <= 0) return
+  const left = TTL_MS - ((await $.clock.now()) - c.lastAt)
+  if (left <= 0 || left > WARN_MS || (await read($, warned)) === c.lastAt) return
+  await update($, warned, () => c.lastAt)
+  const m = MODELS.find(x => x.id === familyOf(c.model))
+  const mins = Math.max(1, Math.round(left / 60000))
+  $.ui.toast(
+    m
+      ? `Cache goes cold in ${mins}m. Send now and the next message costs ${usd(warmCost(m, c.tokens))}, not ${usd(coldCost(m, c.tokens))}.`
+      : `Cache goes cold in ${mins}m. Send now to keep it warm.`,
+    { timeoutMs: 15_000 },
+  )
 }
 
 /** Fresh context figures from the engine onto the cache facts, when it has them. */
@@ -89,15 +147,25 @@ const measure = async ($: EngineInterface, lastAt: number | null, model: string 
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
+    const stored = (await $.store.get('trails')) as Trails | undefined
+    if (stored) await update($, trails, () => stored)
     await pull($)
-    $.clock.every(TICK_MS, () => $.ui.invalidate('ui.render'))
+    const u = await $.session.usage()
+    sessionKey = String(u.startedAt)
+    await count($, u.cost?.usd ?? 0, true)
+    $.clock.every(TICK_MS, async () => {
+      await warn($)
+      $.ui.invalidate('ui.render')
+    })
     return next(e)
   })
 
   on('session.measure', async ($, e, next) => {
     if (e.changed.includes('rateLimits')) {
       await update($, windows, () => clean(e.rateLimits))
+      await record($, e.rateLimits)
     }
+    if (e.changed.includes('cost') && e.cost) await count($, e.cost.usd)
     if (e.changed.includes('context') && e.context.tokens && e.context.tokens > 0) {
       const tokens = e.context.tokens
       await update($, cache, c => (c ? { ...c, tokens, window: e.context.window || c.window } : c))
@@ -152,7 +220,13 @@ export const register: Register = on => {
     const Svg = e.surface !== 'terminal' && 'Svg' in ui ? ui.Svg : null
     const list = await read($, windows)
     const now = await $.clock.now()
-    const view = viewOf(await read($, cache), now)
+    const tracks = await read($, trails)
+    const spent = await read($, spend)
+    // The tower is a gauge: it stands as full as the 5-hour window has left.
+    const five = list.find(w => w.kind === 'five_hour')
+    const level = five ? Math.max(0, Math.min(1, (100 - five.percentUsed) / 100)) : 1
+    const base = viewOf(await read($, cache), now)
+    const view: CacheView | null = base && { ...base, level, spend: spent ?? undefined }
 
     if (list.length === 0 && !view) {
       return (
@@ -175,6 +249,8 @@ export const register: Register = on => {
         name: NAMES[w.kind] ?? w.kind.toUpperCase(),
         d: dots(left, cells),
         reset: fmtReset(w.resetsAt, now),
+        // At this pace the window runs dry before it resets: say when, in the reset's place.
+        out: (eta => (eta === null ? '' : fmtDur(eta)))(runsOutIn(tracks[w.kind] ?? [], now, w.resetsAt)),
       }
     }
 
@@ -189,7 +265,9 @@ export const register: Register = on => {
           <Text color={EMPTY}>{p.d.off}</Text>
           <Text color={p.col} bold> {p.left}% left</Text>
           {p.left < LOW_AT ? <Text color={ALERT} bold> LOW</Text> : null}
-          {p.reset ? <Text color={MUTED}> · {p.reset}</Text> : null}
+          {p.out
+            ? <Text color={TEXT} bold> · out ~{p.out}</Text>
+            : p.reset ? <Text color={MUTED}> · {p.reset}</Text> : null}
         </Box>
       )
     }
@@ -207,7 +285,9 @@ export const register: Register = on => {
             <Text color={p.col} bold>{p.left}% left</Text>
             {p.left < LOW_AT ? <Text color={ALERT} bold> LOW</Text> : null}
           </Box>
-          {p.reset ? <Text color={MUTED}>resets {p.reset}</Text> : null}
+          {p.out
+            ? <Text color={TEXT} bold>out in ~{p.out}</Text>
+            : p.reset ? <Text color={MUTED}>resets {p.reset}</Text> : null}
         </Box>
       )
     }
@@ -243,7 +323,7 @@ export const register: Register = on => {
 
     const badge = Svg
       ? [
-          <Svg key="mark" source={markSvg(mode)} alt={cold ? 'Mark, frozen' : 'Mark, bobbing'} width={MARK_SIZE} height={MARK_SIZE} isInteractive />,
+          <Svg key="mark" source={markSvg(mode, level)} alt={`Tower, ${Math.round(level * 100)}% full, ${cold ? 'frozen' : 'bobbing'}`} width={MARK_SIZE} height={MARK_SIZE} isInteractive />,
           <Text key="gap"> </Text>,
           (() => {
             const c = chipSvg(mode)
@@ -259,6 +339,8 @@ export const register: Register = on => {
           mine ? <Text key="cost" color={TEXT} bold>{usd(costOf(mine, mode, view.tokens))}</Text> : null,
         ]
       : [<Text key="left" color={hue} bold>{` ${Math.max(0, TTL_MIN - view.idleMin)}m left`}</Text>]
+    // The card counts spend; the terminal, which has no card, says today's on the row.
+    if (!Svg && spent) summary.push(<Text key="spent" color={MUTED}>{` · today ~${usd(spent.today)}`}</Text>)
 
     const button = Svg ? (
       <Box key="fold" flexShrink={0} alignItems="flex-start">
