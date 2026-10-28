@@ -1,4 +1,4 @@
-// Draws the adz-ribbon mark and banner in Claude's palette. Usage: node scripts/draw-brand.mjs .
+// Draws the tokenite mark and banner in Claude's palette. Usage: node scripts/draw-brand.mjs .
 import { readFileSync, writeFileSync } from 'node:fs'
 const repo = process.argv[2]
 const SANS = readFileSync(`${repo}/hooks/font.ts`, 'utf8').match(/SANS = '([^']+)'/)[1]
@@ -28,7 +28,7 @@ for (let y = 24; y < H; y += 16) for (let x = 760; x < W; x += 16) {
 // Copy, Column structure: mark, tag-with-dot eyebrow, tight heading, light subtitle.
 g += `<g transform="translate(81 92) scale(1.45)">${MARK(C.bone)}</g>`
 g += `<circle cx="100" cy="214" r="4" fill="${C.bone}"/>` + t(114, 219, 'CLAUDE CODE MOD', { size: 14, w: 500, fill: C.muted, ls: 2.2 })
-g += t(94, 296, 'adz-ribbon', { size: 76, w: 600, fill: C.strong, ls: -2.5 })
+g += t(94, 296, 'tokenite', { size: 76, w: 600, fill: C.strong, ls: -2.5 })
 g += t(97, 344, 'Usage left, reset times and a warm or cold prompt cache,', { size: 24, w: 300 })
 g += t(97, 378, 'in one slim band above the prompt.', { size: 24, w: 300 })
 // A sample band in a card: 8px radius, hairline edge.

@@ -13,6 +13,6 @@ export type Fold = { mode: 'warm' | 'cold'; open: boolean }
 
 declare module 'claude-code' {
   interface PluginState {
-    'adz-ribbon': { windows: Window[]; cache: CacheFacts | null; fold: Fold | null }
+    'tokenite': { windows: Window[]; cache: CacheFacts | null; fold: Fold | null }
   }
 }

@@ -1,12 +1,12 @@
 {
-  "name": "adz-ribbon",
+  "name": "tokenite",
   "version": "1.0.0-adz.1",
   "description": "A slim band above the prompt: how much of your 5-hour and 7-day usage is left, when each resets, and whether the prompt cache is warm or cold with what the next message costs. Based on robonuggets/ribbon.",
   "author": {
     "name": "Adztrz"
   },
-  "homepage": "https://github.com/Adztrz/adz-ribbon",
-  "repository": "https://github.com/Adztrz/adz-ribbon",
+  "homepage": "https://github.com/Adztrz/tokenite",
+  "repository": "https://github.com/Adztrz/tokenite",
   "license": "MIT",
   "keywords": [
     "usage",

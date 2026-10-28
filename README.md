@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="adz-ribbon: usage left, reset times and a warm or cold prompt cache, in one slim band above the prompt" width="100%">
+  <img src="assets/banner.svg" alt="tokenite: usage left, reset times and a warm or cold prompt cache, in one slim band above the prompt" width="100%">
 </p>
 
 <p align="center">
@@ -25,7 +25,7 @@ It installs once and shows in every session after that. No commands to learn.
 In Claude Code, type:
 
 ```
-/plugin install adz-ribbon --marketplace Adztrz/adz-ribbon
+/plugin install tokenite --marketplace Adztrz/tokenite
 ```
 
 1. Type `y` when it asks `Add marketplace?`.
@@ -35,7 +35,7 @@ In Claude Code, type:
 Agents can run the same thing in a shell:
 
 ```
-claude plugin install adz-ribbon --marketplace Adztrz/adz-ribbon
+claude plugin install tokenite --marketplace Adztrz/tokenite
 ```
 
 ## What you see
@@ -79,7 +79,7 @@ Click **Show** to open the cache card and **Hide** to fold it. Warm starts folde
 ## What is inside
 
 ```
-adz-ribbon/
+tokenite/
 ├── .claude-plugin/
 │   ├── plugin.json         the mod's name and version
 │   └── marketplace.json    makes this repo installable
@@ -98,20 +98,20 @@ adz-ribbon/
 Load the folder without installing it:
 
 ```
-claude --plugin-dir ./adz-ribbon
+claude --plugin-dir ./tokenite
 ```
 
 Run the tests and checks:
 
 ```
-claude plugin test ./adz-ribbon
-claude plugin validate ./adz-ribbon
+claude plugin test ./tokenite
+claude plugin validate ./tokenite
 ```
 
 ## Remove it
 
 ```
-claude plugin uninstall adz-ribbon
+claude plugin uninstall tokenite
 ```
 
 ## License
@@ -123,6 +123,6 @@ The embedded font is [Outfit](https://github.com/Outfitio/Outfit-Fonts), under t
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/mark-light.svg">
-    <img src="assets/mark-dark.svg" alt="adz-ribbon mark" width="40">
+    <img src="assets/mark-dark.svg" alt="tokenite mark" width="40">
   </picture>
 </p>
