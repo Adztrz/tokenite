@@ -16,7 +16,7 @@ const PROPS = {
 const WARM_IDLE = 18 * 60 // 18 minutes: warm, cold in 42m
 const COLD_IDLE = (3 * 24 + 9) * 3600 // 3d 9h: cold
 
-test('a warm cache shows Robo, the WARM chip and the minutes left, folded', async ($, on) => {
+test('a warm cache shows the mark, the WARM chip and the minutes left, folded', async ($, on) => {
   mock.store(on)
   mock.clock(on, { now: NOW })
   on('session.start', ($, e) => ({ cwd: e.cwd }))
@@ -28,7 +28,7 @@ test('a warm cache shows Robo, the WARM chip and the minutes left, folded', asyn
   const band = await $.ui.mount({ plugin: 'adz-ribbon', surface: 'desktop', component: 'AbovePrompt', props: PROPS })
   // Drawings keep no key in the kit, so they are found by what they say.
   const alts = (await band.findAll({ type: 'Svg' })).map(s => s.props.alt)
-  expect(alts).toEqual(['Robo, bobbing', 'WARM'])
+  expect(alts).toEqual(['Mark, bobbing', 'WARM'])
   expect(await band.find({ text: ' 42m left' })).toBeDefined()
   expect(await band.find({ key: 'card' })).toBeUndefined()
   expect((await band.find({ key: 'cache-fold' }))?.props.label).toBe('Show')

@@ -1,51 +1,28 @@
 <p align="center">
-  <img src="assets/banner.png" alt="ribbon" width="100%">
-</p>
-
-# ribbon
-
-> **adz-ribbon** is Adztrz's customised fork of [robonuggets/ribbon](https://github.com/robonuggets/ribbon) (MIT). Upstream changes are pulled from the `upstream` remote.
-
-A free mod for Claude Code. It adds a slim band above your prompt that shows:
-
-- **How much usage you have left** in your 7-day and 5-hour windows, and when each one resets.
-- **Whether your prompt cache is warm or cold**, and what your next message will cost.
-
-It installs once and is there in every session after that. No commands to learn.
-
-<p align="center">
-  <img src="assets/slim-warm.png" alt="ribbon, one slim row: 7D 41% left, 5H 96% left, cache warm with 53 minutes left" width="100%">
+  <img src="assets/banner.svg" alt="adz-ribbon: usage left, reset times and a warm or cold prompt cache, in one slim band above the prompt" width="100%">
 </p>
 
 <p align="center">
-  <img src="assets/slim-cold.png" alt="ribbon, one slim row: 7D 45% left, 5H 89% left, cache cold for 12h 45m, next message $4.78" width="100%">
+  <img alt="Claude Code mod" src="https://img.shields.io/badge/Claude%20Code-mod-e9e1dc?labelColor=07090b">
+  <img alt="Zero token cost" src="https://img.shields.io/badge/cost-0%20tokens-55bc82?labelColor=07090b">
+  <img alt="MIT" src="https://img.shields.io/badge/license-MIT-8a8b8a?labelColor=07090b">
 </p>
 
-One row. That's the whole footprint.
+---
+
+A free, open-source mod for Claude Code. It adds one slim band above your prompt that shows:
+
+| | **Usage** | **Prompt cache** |
+|---|---|---|
+| What | How much of your 7-day and 5-hour windows is **left**, and when each resets | Whether the cache is **warm** or **cold**, and what your next message costs |
+| Where it comes from | The app's own rate-limit figures | The time of your last request and the size of your chat |
+| Cost | Nothing: it never calls a model | Nothing |
+
+It installs once and shows in every session after that. No commands to learn.
 
 ## Install
 
-The easy way: send this link to your agent and say "install this".
-
-```
-https://github.com/robonuggets/ribbon
-```
-
-Your agent runs one command. The band shows up in your next session.
-
-### For agents
-
-If you are an agent and your user asked you to install this, run this in a shell:
-
-```
-claude plugin install adz-ribbon --marketplace Adztrz/adz-ribbon
-```
-
-It installs for the user (all their projects) and adds the marketplace on its own. Then tell your user: "Ribbon is installed. Start a new session to see the band above your prompt." Do not edit their settings file by hand.
-
-### By hand
-
-In a Claude Code terminal session, type:
+In Claude Code, type:
 
 ```
 /plugin install adz-ribbon --marketplace Adztrz/adz-ribbon
@@ -55,27 +32,39 @@ In a Claude Code terminal session, type:
 2. Pick the **user** scope with Enter.
 3. Start a new session.
 
+Agents can run the same thing in a shell:
+
+```
+claude plugin install adz-ribbon --marketplace Adztrz/adz-ribbon
+```
+
 ## What you see
 
-### Usage left
+### ● Usage left
 
-- **7D** (orange) is your 7-day window. **5H** (yellow) is your 5-hour window.
+- **7D** is your 7-day window, **5H** your 5-hour window.
 - Each dot bar shows what is **left**, not what is used.
-- Under each one is when it resets, for example `resets 3d 9h`.
-- If a window drops under 15%, a bold **LOW** shows next to it.
+- Next to each one is when it resets, for example `· 3d 9h`.
+- Under 15% left, a bold **LOW** appears.
 
-### The prompt cache
+### ● The prompt cache
 
-After your first reply, the band also tracks the prompt cache. The cache keeps your chat cheap to continue for one hour after your last message.
+After your first reply the band also tracks the prompt cache, which keeps your chat cheap to continue for one hour after your last request.
 
-- **WARM** (red, the robot bobs): the cache is live. It shows the minutes left and what your next message costs.
-- **COLD** (blue, the robot is frozen): the hour has passed. Your next message re-sends the whole chat, so it costs more. It shows the price first.
+- **WARM** (red, the mark bobs): the cache is live. It shows the minutes left.
+- **COLD** (blue, the mark is frozen in ice): the hour has passed. Your next message re-sends the whole chat, so it costs more. The price shows first.
 
-Click **Show** to open the cache card, and **Hide** to fold it. Warm starts folded. Cold starts open, so you see the price before you send.
+Click **Show** to open the cache card and **Hide** to fold it. Warm starts folded; cold starts open, so you see the price before you send.
 
-The card shows how long you've been idle, how many tokens are in the cache, and what the next message costs on each model. Your model is marked **YOU**. See [Up close](#up-close) below.
+<p align="center">
+  <img src="assets/card-warm.svg" alt="Warm cache card: 7m idle, 182k tokens in cache, next message priced per model with Opus marked YOU" width="100%">
+</p>
 
-### Fits any width
+<p align="center">
+  <img src="assets/card-cold.svg" alt="Cold cache card: 12h 45m idle, 182k tokens to re-cache, next message $1.46 on Opus" width="100%">
+</p>
+
+### ● Fits any width
 
 - **Wide:** everything on one row.
 - **Half width:** each window stacks into a small block.
@@ -84,31 +73,24 @@ The card shows how long you've been idle, how many tokens are in the cache, and 
 
 ## Good to know
 
-- **It costs nothing to run.** It reads the app's own numbers and draws them. It never calls a model.
-- **Prices are estimates.** They come from a price table in `hooks/cache-art.ts` (`MODELS`), not from your bill. If prices change, edit that table.
+- **Prices are estimates.** They come from the `MODELS` table in `hooks/cache-art.ts`, not from your bill. If prices change, edit that table.
 - **Subagents don't count.** Only your main chat resets the cache clock.
 
 ## What is inside
 
 ```
-ribbon/
+adz-ribbon/
 ├── .claude-plugin/
 │   ├── plugin.json         the mod's name and version
 │   └── marketplace.json    makes this repo installable
 ├── hooks/
 │   ├── hooks.json          points to the module
 │   ├── register.tsx        the band: usage, cache tracking, layout
-│   ├── cache-art.ts        the cache card and robot drawings, the price table
+│   ├── cache-art.ts        colours, the mark, the cache card, the price table
 │   └── font.ts             Outfit, embedded so the drawings render anywhere
 ├── types/index.d.ts        the shape of what the band remembers
 ├── tests/                  7 tests: layouts, warm and cold, terminal, cleared sessions
-└── assets/                 banner, screenshots, hex icon
-```
-
-## Remove it
-
-```
-claude plugin uninstall adz-ribbon
+└── assets/                 banner, mark, cache card renders
 ```
 
 ## Develop it
@@ -119,36 +101,28 @@ Load the folder without installing it:
 claude --plugin-dir ./adz-ribbon
 ```
 
-Run the tests:
+Run the tests and checks:
 
 ```
 claude plugin test ./adz-ribbon
+claude plugin validate ./adz-ribbon
 ```
 
-## Up close
+## Remove it
 
-Click **Show** and the band opens into the cache card.
-
-**Warm.** The cache is live. Your next message is cheap.
-
-<p align="center">
-  <img src="assets/detail-warm.png" alt="Warm cache card: 6m idle, 245k tokens in cache, next message $0.05 on Opus" width="100%">
-</p>
-
-**Cold.** The hour has passed. Your next message re-sends the whole chat, so it costs more.
-
-<p align="center">
-  <img src="assets/detail-cold.png" alt="Cold cache card: 16h 8m idle, 243k tokens to re-cache, next message $1.94 on Opus" width="100%">
-</p>
+```
+claude plugin uninstall adz-ribbon
+```
 
 ## License
 
-[MIT](LICENSE).
+[MIT](LICENSE). Based on [ribbon](https://github.com/robonuggets/ribbon), also MIT.
 
 The embedded font is [Outfit](https://github.com/Outfitio/Outfit-Fonts), under the SIL Open Font License 1.1.
 
-Made by Jay E from RoboLabs. Learn more at [RoboNuggets](https://robonuggets.com).
-
 <p align="center">
-  <img src="assets/hex.svg" alt="RoboNuggets hex mark" width="48">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/mark-light.svg">
+    <img src="assets/mark-dark.svg" alt="adz-ribbon mark" width="40">
+  </picture>
 </p>

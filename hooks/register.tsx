@@ -3,8 +3,8 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import type { CacheFacts, Fold, Window } from '../types'
 import {
-  BG, EMPTY, HUE, INK, MUTED, ORANGE, ROBO_SIZE, TEXT, TTL_MIN, TTL_MS, WORD, YELLOW,
-  bandPx, cardSvg, chipSvg, costOf, familyOf, fmtIdle, kindOf, mineModel, roboSvg, usd,
+  BG, EMPTY, HUE, INK, MUTED, ORANGE, MARK_SIZE, TEXT, TTL_MIN, TTL_MS, WORD, YELLOW,
+  bandPx, cardSvg, chipSvg, costOf, familyOf, fmtIdle, kindOf, mineModel, markSvg, usd,
 } from './cache-art'
 import type { CacheView } from './cache-art'
 
@@ -12,8 +12,8 @@ import type { CacheView } from './cache-art'
 // dot-matrix bars. Shows how much of each usage window is LEFT, 7-day first, then
 // 5-hour; 7D is orange, 5H is yellow; a window under 15% adds a bold LOW.
 //
-// After the first reply it also shows the prompt cache: WARM (red, Robo bobbing)
-// for an hour after the last request, then COLD (blue, Robo frozen) with what the
+// After the first reply it also shows the prompt cache: WARM (red, the mark bobbing)
+// for an hour after the last request, then COLD (blue, the mark frozen) with what the
 // next message costs to re-cache. Hide / Show folds the card; warm starts folded,
 // cold starts open, and a choice holds until the cache flips. Zero token cost:
 // it reads the engine's own figures and draws.
@@ -241,7 +241,7 @@ export const register: Register = on => {
 
     const badge = Svg
       ? [
-          <Svg key="robo" source={roboSvg(mode)} alt={cold ? 'Robo, frozen' : 'Robo, bobbing'} width={ROBO_SIZE} height={ROBO_SIZE} isInteractive />,
+          <Svg key="mark" source={markSvg(mode)} alt={cold ? 'Mark, frozen' : 'Mark, bobbing'} width={MARK_SIZE} height={MARK_SIZE} isInteractive />,
           <Text key="gap"> </Text>,
           (() => {
             const c = chipSvg(mode)

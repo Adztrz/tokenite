@@ -122,51 +122,45 @@ export const chipShapes = (x: number, y: number, word: string, fill: string, siz
   }
 }
 
-/** The WARM or COLD chip beside Robo in the band's row. */
+/** The WARM or COLD chip beside the mark in the band's row. */
 export const chipSvg = (mode: Mode): { source: string; w: number; h: number } => {
   const c = chipShapes(0, 0, WORD[mode], HUE[mode], 13, 1)
   return { source: svgDoc(c.w, c.h, c.svg, true), w: c.w, h: c.h }
 }
 
-// ---------- Robo: bobbing when warm, frozen in ice when cold ----------
-const ROBO_PIX = ['..X..X..', 'XXXXXXXX', 'XXXXXXXX', 'X.XXXX.X', 'XXXXXXXX', 'XXXXXXXX', 'X..XX..X']
-
+// ---------- The mark: a folded ribbon, bobbing when warm, frozen in ice when cold ----------
 const mix = (a: string, b: string, t: number): string =>
   '#' +
   [1, 3, 5]
     .map(i => Math.round(parseInt(a.substr(i, 2), 16) * (1 - t) + parseInt(b.substr(i, 2), 16) * t).toString(16).padStart(2, '0'))
     .join('')
 
-// One path, not a rect per pixel: separate rects at fractional sizes leave faint
-// seams between them, while one path fills the shared edges solid.
-const pixels = (u: number, fill: string): string => {
-  let d = ''
-  ROBO_PIX.forEach((row, y) =>
-    [...row].forEach((ch, x) => {
-      if (ch === 'X') d += `M${x * u} ${y * u}h${u}v${u}h${-u}z`
-    }),
-  )
-  return `<path d="${d}" fill="${fill}"/>`
-}
+/** The mark's three shards in its own 58 x 56 box (assets/mark-light.svg), the fold half lit. */
+const MARK_W = 58
+const shards = (s: number, fill: string): string =>
+  `<g transform="scale(${s}) translate(-2 -6)" fill="${fill}">` +
+  '<polygon points="4,26 58,8 52,22 10,34"/>' +
+  '<polygon points="58,22 52,36 10,50 16,36" fill-opacity=".55"/>' +
+  '<polygon points="10,50 50,40 44,56 4,60"/></g>'
 
-/** Robo in a box `size` pixels square, top-left at x, y. SMIL only, so the Svg needs isInteractive. */
-export const roboShapes = (x: number, y: number, size: number, mode: Mode): string => {
+/** The mark in a box `size` pixels square, top-left at x, y. SMIL only, so the Svg needs isInteractive. */
+export const markShapes = (x: number, y: number, size: number, mode: Mode): string => {
   const ease = 'calcMode="spline" keyTimes="0;0.5;1" keySplines=".45 0 .55 1;.45 0 .55 1"'
   if (mode === 'warm') {
-    // Robo takes the WARM chip's red, so the two read as one badge.
-    const ROBO = HUE.warm
+    // The mark takes the WARM chip's red, so the two read as one badge.
+    const FILL = HUE.warm
     const u = size / 10
     const ox = x + u
-    const oy = y + 1.6 * u
+    const oy = y + 1.2 * u
     return (
       `<g transform="translate(${ox} ${oy})" shape-rendering="crispEdges">` +
-      `<ellipse cx="${4 * u}" cy="${7.75 * u}" rx="${3 * u}" ry="${0.42 * u}" fill="#000" opacity=".4" shape-rendering="auto">` +
+      `<ellipse cx="${4 * u}" cy="${8.5 * u}" rx="${3 * u}" ry="${0.42 * u}" fill="#000" opacity=".4" shape-rendering="auto">` +
       `<animate attributeName="rx" values="${3 * u};${2.3 * u};${3 * u}" dur="1.2s" repeatCount="indefinite" ${ease}/></ellipse>` +
       `<g><animateTransform attributeName="transform" type="translate" values="0 0;0 ${-1.1 * u};0 0" dur="1.2s" repeatCount="indefinite" ${ease}/>` +
-      pixels(u, ROBO) +
-      // A blink every few seconds: the eye holes fill for a moment.
-      `<g opacity="0"><rect x="${u}" y="${3 * u}" width="${u}" height="${u}" fill="${ROBO}"/><rect x="${6 * u}" y="${3 * u}" width="${u}" height="${u}" fill="${ROBO}"/>` +
-      `<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.9;0.91;0.95;1" dur="3.4s" repeatCount="indefinite"/></g>` +
+      shards((8 * u) / MARK_W, FILL) +
+      // A glint every few seconds: the fold lights up for a moment.
+      `<g opacity="0">${shards((8 * u) / MARK_W, '#fff')}` +
+      `<animate attributeName="opacity" values="0;0;.35;0;0" keyTimes="0;0.86;0.9;0.95;1" dur="3.4s" repeatCount="indefinite"/></g>` +
       `</g></g>`
     )
   }
@@ -180,8 +174,7 @@ export const roboShapes = (x: number, y: number, size: number, mode: Mode): stri
   const bw = 10.4 * u
   const bh = 9.4 * u
   let s = `<g transform="translate(${ox} ${oy})">`
-  s += pixels(u, ice)
-  s += `<rect x="${2 * u}" y="0" width="${u}" height="${u * 0.45}" fill="#fff" opacity=".9"/><rect x="${5 * u}" y="0" width="${u}" height="${u * 0.45}" fill="#fff" opacity=".9"/>`
+  s += shards((8 * u) / MARK_W, ice)
   s += `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="${1.5 * u}" fill="${HUE.cold}" fill-opacity=".28" stroke="${ice}" stroke-width="${0.38 * u}"/>`
   s += `<path d="M${bx + 0.9 * u} ${by + 2.6 * u}l${1.6 * u} ${-1.6 * u}M${bx + 0.9 * u} ${by + 4.2 * u}l${0.8 * u} ${-0.8 * u}" stroke="#fff" stroke-opacity=".75" stroke-width="${0.32 * u}" stroke-linecap="round"/>`
   for (const ix of [1.4, 4.4, 7.2]) {
@@ -198,9 +191,9 @@ export const roboShapes = (x: number, y: number, size: number, mode: Mode): stri
   return s + '</g>'
 }
 
-/** Robo beside the chip in the band's row. */
-export const ROBO_SIZE = 26
-export const roboSvg = (mode: Mode): string => svgDoc(ROBO_SIZE, ROBO_SIZE, roboShapes(0, 0, ROBO_SIZE, mode), false)
+/** The mark beside the chip in the band's row. */
+export const MARK_SIZE = 26
+export const markSvg = (mode: Mode): string => svgDoc(MARK_SIZE, MARK_SIZE, markShapes(0, 0, MARK_SIZE, mode), false)
 
 // ---------- The card, laid out for the band's width ----------
 type TextOpts = { size?: number; w?: number; fill?: string; ls?: number; anchor?: string }
@@ -220,12 +213,12 @@ export const cardSvg = (v: CacheView, kind: Kind, W: number): { source: string; 
   const vline = (x: number, y: number, h: number) => `<rect x="${x}" y="${y}" width="1" height="${h}" fill="${LINE}"/>`
   const hline = (y: number) => `<rect x="13" y="${y}" width="${W - 26}" height="1" fill="${LINE}"/>`
 
-  // How long since the last reply, with Robo and the chip in the header.
+  // How long since the last reply, with the mark and the chip in the header.
   const zoneIdle = (x: number, y: number, w: number, o: { compact?: boolean; header?: boolean } = {}) => {
     const k = o.compact ? { lab: 24, big: 60, bs: 30, line: 80, cap: 100 } : { lab: 30, big: 72, bs: 38, line: 96, cap: 120 }
     let g = ''
     if (o.header) {
-      g += roboShapes(x - 2, y + k.lab - 17, 22, mode)
+      g += markShapes(x - 2, y + k.lab - 17, 22, mode)
       const c = chipShapes(x + 26, y + k.lab - 13, WORD[mode], HUEM, 11, 1)
       g += c.svg + t(x + 26 + c.w + 8, y + k.lab, 'IDLE', { ls: 1.4 })
     } else {
@@ -314,7 +307,7 @@ export const cardSvg = (v: CacheView, kind: Kind, W: number): { source: string; 
       hline(134) +
       zoneCost(13, 134, Math.min(160, (W - 26) / 4))
   } else {
-    // Narrow: the cache row above already shows Robo and the chip.
+    // Narrow: the cache row above already shows the mark and the chip.
     H = 296
     g =
       zoneIdle(13, 0, W - 26, { compact: true }) +

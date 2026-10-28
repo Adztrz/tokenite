@@ -1,7 +1,7 @@
 {
   "name": "adz-ribbon",
   "version": "1.0.0-adz.1",
-  "description": "Adztrz's customised fork of ribbon (robonuggets/ribbon): A slim band above the prompt: how much of your 5-hour and 7-day usage is left, when each resets, and whether the prompt cache is warm or cold with what the next message costs.",
+  "description": "A slim band above the prompt: how much of your 5-hour and 7-day usage is left, when each resets, and whether the prompt cache is warm or cold with what the next message costs. Based on robonuggets/ribbon.",
   "author": {
     "name": "Adztrz"
   },
@@ -17,5 +17,6 @@
     "mod",
     "claude-code"
   ],
-  "types": "./types/index.d.ts"
+  "types": "./types/index.d.ts",
+  "icon": "./.claude-plugin/icon.png"
 }
