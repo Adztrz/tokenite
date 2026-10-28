@@ -21,6 +21,8 @@ import type { CacheView } from './cache-art'
 const CELLS = 10
 const LOW_AT = 15
 const TIGHT_CELLS = 6
+/** On a wide row that also carries the cache badge, the bars give up two dots so it all fits on one line. */
+const SHARED_CELLS = 8
 /** How often the band redraws, so the countdown and the warm-to-cold flip stay current. */
 const TICK_MS = 30_000
 
@@ -163,7 +165,7 @@ export const register: Register = on => {
     const columns = e.props.bodyColumns ?? e.viewport?.columns ?? 100
     const kind = kindOf(columns)
     const isWide = kind === 'wide'
-    const cells = kind === 'tight' ? TIGHT_CELLS : CELLS
+    const cells = kind === 'tight' ? TIGHT_CELLS : isWide && view ? SHARED_CELLS : CELLS
 
     const parts = (w: Window) => {
       const left = Math.max(0, Math.round((100 - w.percentUsed) * 10) / 10)
@@ -181,7 +183,7 @@ export const register: Register = on => {
     const wide = (w: Window, i: number) => {
       const p = parts(w)
       return (
-        <Box key={`w-${i}`} flexDirection="row" flexShrink={0} marginRight={3}>
+        <Box key={`w-${i}`} flexDirection="row" flexShrink={0} marginRight={2}>
           <Text color={MUTED} bold>{p.name} </Text>
           <Text color={p.col}>{p.d.on}</Text>
           <Text color={EMPTY}>{p.d.off}</Text>
@@ -268,20 +270,20 @@ export const register: Register = on => {
     let rows
     if (kind === 'wide') {
       // The app draws text wider than the cells it lays out, so a full row can
-      // run past the edge: the items wrap inside their own box, and the button,
-      // outside it, always keeps its place on the right.
+      // run past the edge. Only the usage wraps, in its own box; the cache badge
+      // and the button stay together on the right.
       rows = (
         <Box key="row" flexDirection="row" paddingX={1} alignItems="center">
           <Box key="items" flexDirection="row" flexWrap="wrap" flexGrow={1} flexShrink={1} minWidth={0} alignItems="center">
             {label}
             {usage}
-            {open ? null : (
-              <Box key="inline" flexDirection="row" flexShrink={0} marginRight={2} alignItems="center">
-                {badge}
-                {summary}
-              </Box>
-            )}
           </Box>
+          {open ? null : (
+            <Box key="inline" flexDirection="row" flexShrink={0} marginRight={2} alignItems="center">
+              {badge}
+              {summary}
+            </Box>
+          )}
           {button}
         </Box>
       )
