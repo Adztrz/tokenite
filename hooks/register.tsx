@@ -3,17 +3,17 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import type { CacheFacts, Fold, Window } from '../types'
 import {
-  ALERT, BG, BODY, BONE, EMPTY, HUE, INK, MUTED, MARK_SIZE, TEXT, TTL_MIN, TTL_MS, WORD,
+  ALERT, BG, BODY, PRIMARY, EMPTY, HUE, INK, MUTED, MARK_SIZE, TEXT, TTL_MIN, TTL_MS, WORD,
   bandPx, cardSvg, chipSvg, costOf, familyOf, fmtIdle, kindOf, mineModel, markSvg, usd,
 } from './cache-art'
 import type { CacheView } from './cache-art'
 
-// A band above the prompt in the Talos palette: card surface, bone and grey text,
+// A band above the prompt in Claude's palette: ivory and grey text,
 // dot-matrix bars. Shows how much of each usage window is LEFT, 7-day first, then
-// 5-hour; 7D is bone, 5H is grey; a window under 15% adds a bold LOW.
+// 5-hour; 7D is orange, 5H is grey; a window under 15% adds a bold LOW.
 //
-// After the first reply it also shows the prompt cache: WARM (alert red, the mark bobbing)
-// for an hour after the last request, then COLD (transit blue, the mark frozen) with what the
+// After the first reply it also shows the prompt cache: WARM (orange, the mark bobbing)
+// for an hour after the last request, then COLD (blue, the mark frozen) with what the
 // next message costs to re-cache. Hide / Show folds the card; warm starts folded,
 // cold starts open, and a choice holds until the cache flips. Zero token cost:
 // it reads the engine's own figures and draws.
@@ -32,7 +32,7 @@ const fold = atom({ plugin: 'adz-ribbon', key: 'fold' } as const, null as Fold |
 
 const NAMES: Record<string, string> = { seven_day: '7D', five_hour: '5H', spend_limit: 'SPEND' }
 const ORDER: Record<string, number> = { seven_day: 0, five_hour: 1 }
-const COLORS: Record<string, string> = { seven_day: BONE, five_hour: BODY }
+const COLORS: Record<string, string> = { seven_day: PRIMARY, five_hour: BODY }
 
 const clean = (list: readonly Window[]): Window[] =>
   list

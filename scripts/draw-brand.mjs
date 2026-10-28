@@ -1,10 +1,11 @@
-// Draws the adz-ribbon mark and banner in the Faust (Talos) palette. Usage: node scripts/draw-brand.mjs .
+// Draws the adz-ribbon mark and banner in Claude's palette. Usage: node scripts/draw-brand.mjs .
 import { readFileSync, writeFileSync } from 'node:fs'
 const repo = process.argv[2]
 const SANS = readFileSync(`${repo}/hooks/font.ts`, 'utf8').match(/SANS = '([^']+)'/)[1]
-const C = { canvas: '#07090b', card: '#090b0c', raised: '#1a1d1e', divider: '#262727', border: '#363738',
-  strong: '#efefed', bone: '#e9e1dc', text: '#b3b0af', muted: '#8a8b8a', subtle: '#6d6f6f', faint: '#565858',
-  warm: '#f12614', cold: '#3e7edf' }
+// Claude's palette (Anthropic's brand colours); `bone` is the primary, Claude orange.
+const C = { canvas: '#141413', card: '#1f1e1d', raised: '#30302e', divider: '#2b2a27', border: '#3d3c38',
+  strong: '#faf9f5', bone: '#d97757', text: '#b0aea5', muted: '#9a988f', subtle: '#77756e', faint: '#5e5d59',
+  warm: '#d97757', cold: '#6a9bcc' }
 // The mark: a crenellated tower, 450 x 620, centred on x = 0. MARK(fill) fits it to the
 // 58 x 56 box at (2, 6) the layout below was drawn around.
 const LOGO = 'M-200 0H-105V55H-50V0H50V55H105V0H200V120L120 210V390L225 485V620H-225V485L-120 390V210L-200 120Z'
@@ -13,7 +14,7 @@ const markDoc = fill => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-225 0
 const iconDoc = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-512 -202 1024 1024"><rect x="-512" y="-202" width="1024" height="1024" fill="${C.canvas}"/><path d="${LOGO}" fill="${C.bone}"/></svg>\n`
 writeFileSync(`${repo}/assets/icon.svg`, iconDoc)  // rsvg-convert -w 1024 assets/icon.svg -o .claude-plugin/icon.png
 writeFileSync(`${repo}/assets/mark-light.svg`, markDoc(C.bone))   // for dark backgrounds
-writeFileSync(`${repo}/assets/mark-dark.svg`, markDoc('#1b1b1d'))  // for light backgrounds
+writeFileSync(`${repo}/assets/mark-dark.svg`, markDoc(C.bone))     // for light backgrounds: orange reads on both
 
 const W = 1600, H = 560
 const font = `<style>@font-face{font-family:O;font-weight:100 900;src:url(data:font/woff2;base64,${SANS}) format('woff2')} text{font-family:O,Inter,system-ui,sans-serif}</style>`

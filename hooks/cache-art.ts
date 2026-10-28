@@ -6,23 +6,24 @@ import { SANS } from './font'
 export type Mode = 'warm' | 'cold'
 export type Kind = 'wide' | 'stacked' | 'tight'
 
-// The band's colours: the Talos palette (Faust's), in the structure of Column's
-// design. Bone is the one primary (the 7-day bar); status colours only for status.
+// The band's colours: Claude's own palette (Anthropic's brand colours). Orange is
+// the one primary (the 7-day bar); the cache's states take orange and blue.
 // The background is the app's own band slot (measured, dark theme), so the band
 // sits flush in its frame; the dots and lines are lifted to read on it.
 export const BG = '#232323'      // the app's band slot
-export const TEXT = '#efefed'    // values
-export const BODY = '#b3b0af'    // body text, the 5-hour bar
-export const MUTED = '#8a8b8a'   // labels
-export const EMPTY = '#474849'   // unlit dots
-export const LINE = '#363738'    // hairlines inside the card (Talos border)
-export const BONE = '#e9e1dc'    // the primary: the 7-day bar
-export const ALERT = '#f12614'   // LOW
+export const TEXT = '#faf9f5'    // values: ivory
+export const BODY = '#b0aea5'    // the 5-hour bar: mid grey
+export const MUTED = '#9a988f'   // labels
+export const EMPTY = '#4a4945'   // unlit dots
+export const LINE = '#3a3935'    // hairlines inside the card
+export const PRIMARY = '#d97757'    // the primary: the 7-day bar, Claude orange
+export const ALERT = '#faf9f5'   // LOW: ivory, bold, beside the orange
 
-// The cache's two states in Talos status colours: alert red, transit blue.
-export const HUE: Record<Mode, string> = { warm: '#f12614', cold: '#3e7edf' }
-/** Text on a filled chip: the page colour. */
-export const INK = '#07090b'
+// The cache's two states: Claude orange, and the palette's blue.
+export const HUE: Record<Mode, string> = { warm: '#d97757', cold: '#6a9bcc' }
+/** Text on a filled chip: Claude's dark. */
+export const INK = '#141413'
+
 export const WORD: Record<Mode, string> = { warm: 'WARM', cold: 'COLD' }
 
 /** The prompt cache lives an hour after the last request that read or wrote it. */
