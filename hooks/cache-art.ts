@@ -6,20 +6,21 @@ import { SANS } from './font'
 export type Mode = 'warm' | 'cold'
 export type Kind = 'wide' | 'stacked' | 'tight'
 
-// The band's own colours, measured from the app.
-export const BG = '#24221c'
-export const TEXT = '#e8e2d2'
-export const MUTED = '#8d8775'
-export const EMPTY = '#4a463b'
-export const LINE = '#36332b'
-export const ORANGE = '#ff6b1a'
-export const YELLOW = '#f5a623'
+// The band's colours: the Talos palette (Faust's), in the structure of Column's
+// design. Bone is the one primary (the 7-day bar); status colours only for status.
+export const BG = '#090b0c'      // card: one step above the page
+export const TEXT = '#efefed'    // values
+export const BODY = '#b3b0af'    // body text, the 5-hour bar
+export const MUTED = '#8a8b8a'   // labels
+export const EMPTY = '#363738'   // unlit dots
+export const LINE = '#262727'    // hairlines inside the card
+export const BONE = '#e9e1dc'    // the primary: the 7-day bar
+export const ALERT = '#f12614'   // LOW
 
-// The cache's two states in a muted shade: desaturated so they sit
-// beside the band's own orange and yellow.
-export const HUE: Record<Mode, string> = { warm: '#cc6363', cold: '#6aaabd' }
-/** Text on a filled chip. */
-export const INK = '#1c1a16'
+// The cache's two states in Talos status colours: alert red, transit blue.
+export const HUE: Record<Mode, string> = { warm: '#f12614', cold: '#3e7edf' }
+/** Text on a filled chip: the page colour. */
+export const INK = '#07090b'
 export const WORD: Record<Mode, string> = { warm: 'WARM', cold: 'COLD' }
 
 /** The prompt cache lives an hour after the last request that read or wrote it. */
@@ -98,7 +99,7 @@ export const svgDoc = (w: number, h: number, body: string, font: boolean): strin
   body +
   '</svg>'
 
-// ---------- Rounded chips (WARM, COLD, YOU) ----------
+// ---------- Pill chips (WARM, COLD, YOU): tags, so full pills ----------
 // A text background can't be rounded, so a chip is a small drawing. The mod can't
 // measure text, so each chip's size was measured once, in the
 // embedded font: width = the word plus 0.62 em of padding each side, height 1.65 em.
@@ -116,7 +117,7 @@ export const chipShapes = (x: number, y: number, word: string, fill: string, siz
     w,
     h,
     svg:
-      `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.round(h * 0.32)}" fill="${fill}"/>` +
+      `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${h / 2}" fill="${fill}"/>` +
       `<text x="${x + w / 2}" y="${y + h / 2 + size * 0.36}" font-size="${size}" font-weight="700" letter-spacing="${ls}"` +
       ` text-anchor="middle" fill="${INK}">${word}</text>`,
   }
