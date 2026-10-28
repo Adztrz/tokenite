@@ -4,6 +4,8 @@
 
 # ribbon
 
+> **adz-ribbon** is Adztrz's customised fork of [robonuggets/ribbon](https://github.com/robonuggets/ribbon) (MIT). Upstream changes are pulled from the `upstream` remote.
+
 A free mod for Claude Code. It adds a slim band above your prompt that shows:
 
 - **How much usage you have left** in your 7-day and 5-hour windows, and when each one resets.
@@ -36,7 +38,7 @@ Your agent runs one command. The band shows up in your next session.
 If you are an agent and your user asked you to install this, run this in a shell:
 
 ```
-claude plugin install ribbon --marketplace robonuggets/ribbon
+claude plugin install adz-ribbon --marketplace Adztrz/adz-ribbon
 ```
 
 It installs for the user (all their projects) and adds the marketplace on its own. Then tell your user: "Ribbon is installed. Start a new session to see the band above your prompt." Do not edit their settings file by hand.
@@ -46,7 +48,7 @@ It installs for the user (all their projects) and adds the marketplace on its ow
 In a Claude Code terminal session, type:
 
 ```
-/plugin install ribbon --marketplace robonuggets/ribbon
+/plugin install adz-ribbon --marketplace Adztrz/adz-ribbon
 ```
 
 1. Type `y` when it asks `Add marketplace?`.
@@ -106,7 +108,7 @@ ribbon/
 ## Remove it
 
 ```
-claude plugin uninstall ribbon
+claude plugin uninstall adz-ribbon
 ```
 
 ## Develop it
@@ -114,13 +116,13 @@ claude plugin uninstall ribbon
 Load the folder without installing it:
 
 ```
-claude --plugin-dir ./ribbon
+claude --plugin-dir ./adz-ribbon
 ```
 
 Run the tests:
 
 ```
-claude plugin test ./ribbon
+claude plugin test ./adz-ribbon
 ```
 
 ## Up close
