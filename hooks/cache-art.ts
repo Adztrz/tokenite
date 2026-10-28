@@ -131,20 +131,19 @@ export const chipSvg = (mode: Mode): { source: string; w: number; h: number } =>
   return { source: svgDoc(c.w, c.h, c.svg, true), w: c.w, h: c.h }
 }
 
-// ---------- The mark: a folded ribbon, bobbing when warm, frozen in ice when cold ----------
+// ---------- The mark: a tower, bobbing when warm, frozen in ice when cold ----------
 const mix = (a: string, b: string, t: number): string =>
   '#' +
   [1, 3, 5]
     .map(i => Math.round(parseInt(a.substr(i, 2), 16) * (1 - t) + parseInt(b.substr(i, 2), 16) * t).toString(16).padStart(2, '0'))
     .join('')
 
-/** The mark's three shards in its own 58 x 56 box (assets/mark-light.svg), the fold half lit. */
+/** The mark: a crenellated tower, 450 x 620, centred on x = 0 (assets/mark-light.svg). */
+const LOGO = 'M-200 0H-105V55H-50V0H50V55H105V0H200V120L120 210V390L225 485V620H-225V485L-120 390V210L-200 120Z'
+/** Box the band places the mark in, in units of `s`: the tower fits its height, centred across it. */
 const MARK_W = 58
 const shards = (s: number, fill: string): string =>
-  `<g transform="scale(${s}) translate(-2 -6)" fill="${fill}">` +
-  '<polygon points="4,26 58,8 52,22 10,34"/>' +
-  '<polygon points="58,22 52,36 10,50 16,36" fill-opacity=".55"/>' +
-  '<polygon points="10,50 50,40 44,56 4,60"/></g>'
+  `<g transform="translate(${29 * s} 0) scale(${(56 * s) / 620})"><path d="${LOGO}" fill="${fill}"/></g>`
 
 /** The mark in a box `size` pixels square, top-left at x, y. SMIL only, so the Svg needs isInteractive. */
 export const markShapes = (x: number, y: number, size: number, mode: Mode): string => {
@@ -161,7 +160,7 @@ export const markShapes = (x: number, y: number, size: number, mode: Mode): stri
       `<animate attributeName="rx" values="${3 * u};${2.3 * u};${3 * u}" dur="1.2s" repeatCount="indefinite" ${ease}/></ellipse>` +
       `<g><animateTransform attributeName="transform" type="translate" values="0 0;0 ${-1.1 * u};0 0" dur="1.2s" repeatCount="indefinite" ${ease}/>` +
       shards((8 * u) / MARK_W, FILL) +
-      // A glint every few seconds: the fold lights up for a moment.
+      // A glint every few seconds: the tower lights up for a moment.
       `<g opacity="0">${shards((8 * u) / MARK_W, '#fff')}` +
       `<animate attributeName="opacity" values="0;0;.35;0;0" keyTimes="0;0.86;0.9;0.95;1" dur="3.4s" repeatCount="indefinite"/></g>` +
       `</g></g>`
