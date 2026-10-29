@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="tokenite: usage left, reset times and a warm or cold prompt cache, in one slim band above the prompt" width="100%">
+  <img src="assets/banner.svg" alt="tokenite, animated: the tower fills, the usage dots light up, the 5-hour reset gives way to a run-out forecast, and the cache goes from warm to cold" width="100%">
 </p>
 
 <p align="center">
