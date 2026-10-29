@@ -375,21 +375,21 @@ export const register: Register = on => {
 
     let rows
     if (kind === 'wide') {
-      // The app draws text wider than the cells it lays out, so a full row can
-      // run past the edge. Only the usage wraps, in its own box; the cache badge
-      // and the button stay together on the right.
+      // The groups (7D, 5H and, folded, the cache) spread evenly across the band
+      // rather than bunching at the left; the button keeps the right edge. The app
+      // draws text wider than the cells it lays out, so they may wrap, never clip.
       rows = (
         <Box key="row" flexDirection="row" paddingX={1} alignItems="center">
-          <Box key="items" flexDirection="row" flexWrap="wrap" flexGrow={1} flexShrink={1} minWidth={0} alignItems="center">
-            {label}
+          {label}
+          <Box key="items" flexDirection="row" flexWrap="wrap" flexGrow={1} flexShrink={1} minWidth={0} alignItems="center" justifyContent="space-between">
             {usage}
+            {open ? null : (
+              <Box key="inline" flexDirection="row" flexShrink={0} marginRight={2} alignItems="center">
+                {badge}
+                {summary}
+              </Box>
+            )}
           </Box>
-          {open ? null : (
-            <Box key="inline" flexDirection="row" flexShrink={0} marginRight={2} alignItems="center">
-              {badge}
-              {summary}
-            </Box>
-          )}
           {button}
         </Box>
       )
@@ -437,7 +437,10 @@ export const register: Register = on => {
       const c = cardSvg(view, kind, bandPx(columns))
       card = (
         <Box key="card" flexDirection="row">
-          <Svg source={c.source} alt={c.alt} width={c.w} height={c.h} isInteractive={kind !== 'tight'} />
+          {/* No fixed size: the band's slot is narrower than the column count suggests on
+              some screens, and a fixed box then kept empty height under the scaled card.
+              Left to itself the card fits the slot and its height follows. */}
+          <Svg source={c.source} alt={c.alt} isInteractive={kind !== 'tight'} />
         </Box>
       )
     }

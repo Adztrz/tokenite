@@ -132,7 +132,7 @@ export const chipShapes = (x: number, y: number, word: string, fill: string, siz
 
 /** The WARM or COLD chip beside the mark in the band's row. */
 export const chipSvg = (mode: Mode): { source: string; w: number; h: number } => {
-  const c = chipShapes(0, 0, WORD[mode], HUE[mode], 13, 1)
+  const c = chipShapes(0, 0, WORD[mode], HUE[mode], 11, 1)
   return { source: svgDoc(c.w, c.h, c.svg, true), w: c.w, h: c.h }
 }
 
@@ -222,7 +222,7 @@ export const markShapes = (x: number, y: number, size: number, mode: Mode, level
 }
 
 /** The mark beside the chip in the band's row. */
-export const MARK_SIZE = 26
+export const MARK_SIZE = 20
 export const markSvg = (mode: Mode, level = 1): string =>
   svgDoc(MARK_SIZE, MARK_SIZE, markShapes(0, 0, MARK_SIZE, mode, level, 'tk-band'), false)
 
@@ -296,7 +296,7 @@ export const cardSvg = (v: CacheView, kind: Kind, W: number): { source: string; 
     }
     // 25 dots a row on the page; fewer only where the band is too narrow for them.
     const cols = Math.max(10, Math.min(25, Math.floor(w / 9.6)))
-    return g + big(y + 56, 30, 14) + grid(x, y + 74, cols, 9.6) + t(x, y + 94, `${Math.round(share * 100)}% of the ${tok(v.window)} context`, { size: 12, w: 500 })
+    return g + big(y + 56, 30, 14) + grid(x, y + 74, cols, 9.6) + t(x, y + 97, `${Math.round(share * 100)}% of the ${tok(v.window)} context`, { size: 12, w: 500 })
   }
 
   // What the next message costs, by model. One scale for both states (the cold
