@@ -21,7 +21,7 @@ import { dayOf, tally } from './spend'
 // it reads the engine's own figures and draws.
 //
 // What tokenite adds: each window says when it runs out at the pace it is being
-// used, when that comes before its reset; the tower fills with the 5-hour window
+// used, when that comes before its reset; the crystal fills with the 5-hour window
 // left; a toast warns five minutes before the cache goes cold; and the card counts
 // what this session and today have cost.
 
@@ -242,7 +242,7 @@ export const register: Register = on => {
     const now = await $.clock.now()
     const tracks = await read($, trails)
     const spent = await read($, spend)
-    // The tower is a gauge: it stands as full as the 5-hour window has left.
+    // The crystal is a gauge: it stands as full as the 5-hour window has left.
     const five = list.find(w => w.kind === 'five_hour')
     const level = five ? Math.max(0, Math.min(1, (100 - five.percentUsed) / 100)) : 1
     const base = viewOf(await read($, cache), now)
@@ -352,7 +352,7 @@ export const register: Register = on => {
 
     const badge = Svg
       ? [
-          <Svg key="mark" source={markSvg(mode, level)} alt={`Tower, ${Math.round(level * 100)}% full, ${cold ? 'frozen' : 'bobbing'}`} width={MARK_SIZE} height={MARK_SIZE} isInteractive />,
+          <Svg key="mark" source={markSvg(mode, level)} alt={`Crystal, ${Math.round(level * 100)}% full, ${cold ? 'frozen' : 'bobbing'}`} width={MARK_SIZE} height={MARK_SIZE} isInteractive />,
           <Text key="gap"> </Text>,
           (() => {
             const c = chipSvg(mode)

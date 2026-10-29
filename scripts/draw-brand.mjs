@@ -6,18 +6,64 @@ const SANS = readFileSync(`${repo}/hooks/font.ts`, 'utf8').match(/SANS = '([^']+
 const C = { canvas: '#141413', card: '#1f1e1d', raised: '#30302e', divider: '#2b2a27', border: '#3d3c38',
   strong: '#faf9f5', bone: '#d97757', text: '#b0aea5', muted: '#9a988f', subtle: '#77756e', faint: '#5e5d59',
   warm: '#d97757', cold: '#6a9bcc' }
-// The mark: a crenellated tower, 450 x 620, centred on x = 0. MARK(fill) fits it to the
-// 58 x 56 box at (2, 6) the layout below was drawn around.
-const LOGO = 'M-200 0H-105V55H-50V0H50V55H105V0H200V120L120 210V390L225 485V620H-225V485L-120 390V210L-200 120Z'
-const MARK = fill => `<g transform="translate(31 6) scale(${56 / 620})"><path d="${LOGO}" fill="${fill}"/></g>`
-const markDoc = fill => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-225 0 450 620"><path d="${LOGO}" fill="${fill}"/></svg>\n`
-const iconDoc = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-512 -202 1024 1024"><rect x="-512" y="-202" width="1024" height="1024" fill="${C.canvas}"/><path d="${LOGO}" fill="${C.bone}"/></svg>\n`
+// The mark: a pixel quartz point, as hooks/cache-art.ts draws it. One letter a pixel:
+// h l the tip's light and shade, b d k the prism's lit face, shaded face and edge,
+// s a sparkle, '.' empty. 13 across, 17 down.
+const QUARTZ = [
+  '.....hl......',
+  '....hhll...s.',
+  '...hhhlll....',
+  '..hhhhllll...',
+  '.hhhhhlllll..',
+  '.bhbbbddddk..',
+  '.bhbbbddddk..',
+  '.bhbbbddddk..',
+  '.bbbbbddddk..',
+  '.bbbbbddddk..',
+  '.bbhbbddddk..',
+  '.bbhbbddddk..',
+  '.bbbbbddddk..',
+  '.bbbbbddddk..',
+  '..bbbbdddk...',
+  '...bbbddk....',
+  '....bbdk.....',
+]
+const TONES = {
+  warm: { h: '#f6c3ad', l: '#eb9a7a', b: '#d97757', d: '#b95b3d', k: '#8f4129', s: '#fff8f2' },
+  cold: { h: '#d6e6f4', l: '#a9c8e6', b: '#6a9bcc', d: '#4f7fb0', k: '#3a5f88', s: '#ffffff' },
+}
+/**
+ * The crystal at (x0, y0), `px` a pixel, lit from the bottom row up to `level`, the
+ * rows above a faint shell. `rowClass(y)` gives a lit row's CSS (the banner's fill
+ * animation); the sparkle takes `sparkClass`.
+ */
+const crystal = (x0, y0, px, tone, level = 1, o = {}) => {
+  const n = QUARTZ.length
+  const cut = Math.round(n * (1 - level))
+  let g = `<g shape-rendering="crispEdges">`
+  QUARTZ.forEach((row, y) => {
+    let r = ''
+    ;[...row].forEach((ch, x) => {
+      if (ch === '.' || ch === 's') return
+      const lit = y >= cut
+      r += `<rect x="${x0 + x * px}" y="${y0 + y * px}" width="${px + 0.02}" height="${px + 0.02}" fill="${lit ? tone[ch] : tone.b}"${lit ? '' : ' fill-opacity=".18"'}/>`
+    })
+    g += y >= cut && o.rowClass ? `<g ${o.rowClass(y, n)}>${r}</g>` : r
+  })
+  QUARTZ.forEach((row, y) => [...row].forEach((ch, x) => {
+    if (ch === 's') g += `<rect${o.sparkClass ? ` ${o.sparkClass}` : ''} x="${x0 + x * px}" y="${y0 + y * px}" width="${px}" height="${px}" fill="${tone.s}"/>`
+  }))
+  return g + '</g>'
+}
+const markDoc = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 13 17">${crystal(0, 0, 1, TONES.warm)}</svg>\n`
+const iconDoc = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><rect width="1024" height="1024" fill="${C.canvas}"/>${crystal(226, 138, 44, TONES.warm)}</svg>\n`
 writeFileSync(`${repo}/assets/icon.svg`, iconDoc)  // rsvg-convert -w 1024 assets/icon.svg -o .claude-plugin/icon.png
-writeFileSync(`${repo}/assets/mark-light.svg`, markDoc(C.bone))   // for dark backgrounds
-writeFileSync(`${repo}/assets/mark-dark.svg`, markDoc(C.bone))     // for light backgrounds: orange reads on both
+writeFileSync(`${repo}/assets/mark-light.svg`, markDoc)   // for dark backgrounds
+writeFileSync(`${repo}/assets/mark-dark.svg`, markDoc)    // for light backgrounds: the crystal reads on both
 
 // ---------- The banner, animated with Claude's motion ----------
-// Soft expo-out easing, staggered fade-ups that clear a light blur, a breathing
+// Soft expo-out easing, staggered fade-ups that clear a light blur, the crystal
+// filling a pixel row at a time, a breathing
 // live dot and a shimmer across the name; then the band at work on a 12 s loop:
 // the 5H reset swaps with the run-out forecast, the cache goes from WARM to COLD.
 // CSS and SMIL only, so GitHub plays it from an <img>; reduced motion gets the
@@ -32,11 +78,11 @@ text{font-family:O,Inter,system-ui,sans-serif}
 @keyframes rise{from{opacity:0;transform:translateY(14px);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
 .lit{animation:lit .5s ${EASE} both}
 @keyframes lit{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:none}}
-.lit,.fill,.ring{transform-box:fill-box;transform-origin:50% 50%}
-.fill{transform-origin:50% 100%;animation:fill 1.8s ${EASE} .5s both}
-@keyframes fill{from{transform:scaleY(0)}to{transform:none}}
-.surf{animation:surf 2.6s ease-in-out 2.3s infinite}
-@keyframes surf{50%{transform:translateY(-14px)}}
+.lit,.ring{transform-box:fill-box;transform-origin:50% 50%}
+.row{animation:row .35s ${EASE} both}
+@keyframes row{from{opacity:0}to{opacity:1}}
+.spark{animation:spark 3.2s ease-in-out 2s infinite}
+@keyframes spark{0%,60%,100%{opacity:0}75%{opacity:1}}
 .ring{animation:ring 2.4s ${EASE} 1s infinite}
 @keyframes ring{from{opacity:.7;transform:scale(1)}to{opacity:0;transform:scale(3.2)}}
 .dots{animation:breathe 8s ease-in-out infinite}
@@ -53,15 +99,6 @@ text{font-family:O,Inter,system-ui,sans-serif}
 `
 const t = (x, y, s, o = {}) => `<text x="${x}" y="${y}" font-size="${o.size ?? 16}" font-weight="${o.w ?? 400}" fill="${o.fill ?? C.text}" letter-spacing="${o.ls ?? 0}"${o.anchor ? ` text-anchor="${o.anchor}"` : ''}>${s}</text>`
 const rise = (delay, body) => `<g class="rise" style="animation-delay:${delay}s">${body}</g>`
-// The tower as a gauge, as the band draws it: a faint shell filled from the bottom.
-const gauge = (fill, level, id, live) => {
-  const top = 620 * (1 - level)
-  return `<g transform="translate(31 6) scale(${56 / 620})"><clipPath id="${id}"><path d="${LOGO}"/></clipPath>` +
-    `<path d="${LOGO}" fill="${fill}" fill-opacity=".18" stroke="${fill}" stroke-opacity=".5" stroke-width="14"/>` +
-    `<g clip-path="url(#${id})"><g${live ? ' class="fill"' : ''}><rect x="-230" y="${top}" width="460" height="${640 - top}" fill="${fill}"/>` +
-    `<rect${live ? ' class="surf"' : ''} x="-230" y="${top}" width="460" height="16" fill="#fff" fill-opacity=".45"/></g></g></g>`
-}
-
 let g = `<rect width="${W}" height="${H}" fill="${C.canvas}"/>`
 // Halftone dot field on the right, fading toward the copy, breathing slowly.
 g += '<g class="dots">'
@@ -70,8 +107,12 @@ for (let y = 24; y < H; y += 16) for (let x = 760; x < W; x += 16) {
   if (k > 0.08) g += `<circle cx="${x}" cy="${y}" r="${(1.6 * k + 0.4).toFixed(2)}" fill="${C.faint}" fill-opacity="${(0.25 + 0.5 * k).toFixed(2)}"/>`
 }
 g += '</g>'
-// Copy: the tower filling, the eyebrow with its live dot, the name with a shimmer, the line under it.
-g += rise(0.05, `<g transform="translate(81 92) scale(1.45)">${gauge(C.bone, 0.62, 'hero', true)}</g>`)
+// Copy: the crystal filling, the eyebrow with its live dot, the name with a shimmer, the line under it.
+// The crystal fills from the bottom row up to the 5-hour window's 62%, a row at a time.
+g += rise(0.05, crystal(88, 92, 5.4, TONES.warm, 0.62, {
+  rowClass: (y, n) => `class="row" style="animation-delay:${(0.5 + (n - 1 - y) * 0.08).toFixed(2)}s"`,
+  sparkClass: 'class="spark"',
+}))
 g += rise(0.25, `<circle class="ring" cx="100" cy="214" r="4" fill="none" stroke="${C.bone}" stroke-width="1.5"/><circle cx="100" cy="214" r="4" fill="${C.bone}"/>` +
   t(114, 219, 'CLAUDE CODE MOD', { size: 14, w: 500, fill: C.muted, ls: 2.2 }))
 g += `<defs><linearGradient id="shine" gradientUnits="userSpaceOnUse" x1="-400" x2="-100" y1="0" y2="0">` +
@@ -102,9 +143,9 @@ b += t(cx + 656, by, '62% left', { size: 16, w: 600, fill: C.text })
 // The 5H reset gives way to the forecast while the pace would run it dry first.
 b += `<g class="f1">${t(cx + 732, by, '· 4h 57m', { size: 16, fill: C.muted })}</g>`
 b += `<g class="f2">${t(cx + 732, by, '· out ~1h 40m', { size: 16, w: 600, fill: C.strong })}</g>`
-// The cache: WARM with the tower full of orange, then COLD in blue with the re-cache price.
+// The cache: WARM with the crystal in orange, then COLD in blue with the re-cache price.
 const badge = (fill, word, chipW, after, afterFill) =>
-  `<g transform="translate(${cx + 862} ${cy + 20}) scale(0.5)">${gauge(fill, 0.62, `b-${word}`, false)}</g>` +
+  crystal(cx + 870, cy + 22, 1.4, word === 'WARM' ? TONES.warm : TONES.cold, 0.62) +
   `<rect x="${cx + 900}" y="${cy + 22}" width="${chipW}" height="24" rx="12" fill="${fill}"/>` +
   t(cx + 900 + chipW / 2, by, word, { size: 14, w: 700, fill: C.canvas, ls: 1, anchor: 'middle' }) +
   t(cx + 912 + chipW, by, after, { size: 16, w: 600, fill: afterFill })

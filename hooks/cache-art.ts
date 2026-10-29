@@ -100,7 +100,7 @@ export type CacheView = {
   window: number
   /** This session's MODELS id, or null when the model isn't priced. */
   mine: string | null
-  /** How full the tower stands, 0 to 1: the 5-hour window left. Absent, full. */
+  /** How full the crystal stands, 0 to 1: the 5-hour window left. Absent, full. */
   level?: number
   /** What this session and today have cost, for the card's footer. */
   spend?: { session: number; today: number }
@@ -147,37 +147,75 @@ export const chipSvg = (mode: Mode): { source: string; w: number; h: number } =>
   return { source: svgDoc(c.w, c.h, c.svg, true), w: c.w, h: c.h }
 }
 
-// ---------- The mark: a tower, bobbing when warm, frozen in ice when cold ----------
+// ---------- The mark: a pixel quartz, bobbing when warm, frozen in ice when cold ----------
 const mix = (a: string, b: string, t: number): string =>
   '#' +
   [1, 3, 5]
     .map(i => Math.round(parseInt(a.substr(i, 2), 16) * (1 - t) + parseInt(b.substr(i, 2), 16) * t).toString(16).padStart(2, '0'))
     .join('')
 
-/** The mark: a crenellated tower, 450 x 620, centred on x = 0 (assets/mark-light.svg). */
-const LOGO = 'M-200 0H-105V55H-50V0H50V55H105V0H200V120L120 210V390L225 485V620H-225V485L-120 390V210L-200 120Z'
-/** Box the band places the mark in, in units of `s`: the tower fits its height, centred across it. */
-const MARK_W = 58
-const shards = (s: number, fill: string): string =>
-  `<g transform="translate(${29 * s} 0) scale(${(56 * s) / 620})"><path d="${LOGO}" fill="${fill}"/></g>`
+/**
+ * The mark: a pixel quartz point, lit from the top left. One letter a pixel:
+ * h and l the tip's light and shade, b d k the prism's lit face, shaded face and
+ * edge, s a sparkle beside it, '.' empty. 13 across, 17 down.
+ */
+const QUARTZ = [
+  '.....hl......',
+  '....hhll...s.',
+  '...hhhlll....',
+  '..hhhhllll...',
+  '.hhhhhlllll..',
+  '.bhbbbddddk..',
+  '.bhbbbddddk..',
+  '.bhbbbddddk..',
+  '.bbbbbddddk..',
+  '.bbbbbddddk..',
+  '.bbhbbddddk..',
+  '.bbhbbddddk..',
+  '.bbbbbddddk..',
+  '.bbbbbddddk..',
+  '..bbbbdddk...',
+  '...bbbddk....',
+  '....bbdk.....',
+]
+const QUARTZ_W = 13
+
+/** The crystal's tones, brightest to darkest: Claude orange warm, the blue cold. */
+const TONES: Record<Mode, Record<string, string>> = {
+  warm: { h: '#f6c3ad', l: '#eb9a7a', b: '#d97757', d: '#b95b3d', k: '#8f4129', s: '#fff8f2' },
+  cold: { h: '#d6e6f4', l: '#a9c8e6', b: '#6a9bcc', d: '#4f7fb0', k: '#3a5f88', s: '#ffffff' },
+}
 
 /**
- * The tower as a gauge, like a vessel in a lab: a faint shell, filled from the
- * bottom to `level` (0 to 1), its surface gently moving. `id` names the clip, one
- * per drawing.
+ * The crystal as a gauge in a `w` x `h` box at the origin: lit from the bottom
+ * row up to `level` (0 to 1), one pixel row at a time, the rows above a faint
+ * shell. The top lit row breathes and the sparkle twinkles. SMIL only.
  */
-const gauge = (s: number, fill: string, level: number, id: string): string => {
-  const top = 620 * (1 - Math.max(0, Math.min(1, level)))
-  const wave = (y: number) => `<animate attributeName="y" values="${y};${y - 10};${y}" dur="2.4s" repeatCount="indefinite"/>`
-  const deep = (h: number) => `<animate attributeName="height" values="${h};${h + 10};${h}" dur="2.4s" repeatCount="indefinite"/>`
+const crystal = (w: number, h: number, mode: Mode, level: number): string => {
+  const px = Math.min(w / QUARTZ_W, h / QUARTZ.length)
+  const x0 = (w - QUARTZ_W * px) / 2
+  const tone = TONES[mode]
+  const cut = Math.round(QUARTZ.length * (1 - Math.max(0, Math.min(1, level))))
+  // A hair over a pixel, so neighbours meet without seams.
+  const cell = (x: number, y: number, fill: string, extra = '') =>
+    `<rect x="${x0 + x * px}" y="${y * px}" width="${px + 0.02}" height="${px + 0.02}" fill="${fill}"${extra}/>`
+  let shell = ''
+  let lit = ''
+  let top = ''
+  let spark = ''
+  QUARTZ.forEach((row, y) =>
+    [...row].forEach((ch, x) => {
+      if (ch === '.') return
+      if (ch === 's') spark += cell(x, y, tone.s ?? '#fff')
+      else if (y < cut) shell += cell(x, y, tone.b ?? '#fff', ' fill-opacity=".18"')
+      else if (y === cut && cut > 0) top += cell(x, y, tone[ch] ?? '#fff')
+      else lit += cell(x, y, tone[ch] ?? '#fff')
+    }),
+  )
   return (
-    `<g transform="translate(${29 * s} 0) scale(${(56 * s) / 620})">` +
-    `<clipPath id="${id}"><path d="${LOGO}"/></clipPath>` +
-    `<path d="${LOGO}" fill="${fill}" fill-opacity=".2" stroke="${fill}" stroke-opacity=".55" stroke-width="16"/>` +
-    `<g clip-path="url(#${id})">` +
-    `<rect x="-230" y="${top}" width="460" height="${620 - top}" fill="${fill}">${top > 0 ? wave(top) + deep(620 - top) : ''}</rect>` +
-    (top > 0 && top < 620 ? `<rect x="-230" y="${top}" width="460" height="18" fill="#fff" fill-opacity=".4">${wave(top)}</rect>` : '') +
-    '</g></g>'
+    `<g shape-rendering="crispEdges">${shell}${lit}` +
+    (top ? `<g>${top}<animate attributeName="opacity" values="1;.55;1" dur="2.4s" repeatCount="indefinite"/></g>` : '') +
+    `<g opacity="0">${spark}<animate attributeName="opacity" values="0;0;1;0;0" keyTimes="0;.6;.75;.9;1" dur="3.2s" repeatCount="indefinite"/></g></g>`
   )
 }
 
@@ -185,23 +223,19 @@ const gauge = (s: number, fill: string, level: number, id: string): string => {
  * The mark in a box `size` pixels square, top-left at x, y, filled to `level`.
  * SMIL only, so the Svg needs isInteractive.
  */
-export const markShapes = (x: number, y: number, size: number, mode: Mode, level = 1, id = 'tk'): string => {
+export const markShapes = (x: number, y: number, size: number, mode: Mode, level = 1): string => {
   const ease = 'calcMode="spline" keyTimes="0;0.5;1" keySplines=".45 0 .55 1;.45 0 .55 1"'
   if (mode === 'warm') {
-    // The mark takes the WARM chip's red, so the two read as one badge.
-    const FILL = HUE.warm
+    // The crystal takes the WARM chip's orange, so the two read as one badge.
     const u = size / 10
     const ox = x + u
     const oy = y + 1.2 * u
     return (
-      `<g transform="translate(${ox} ${oy})" shape-rendering="crispEdges">` +
+      `<g transform="translate(${ox} ${oy})">` +
       `<ellipse cx="${4 * u}" cy="${8.5 * u}" rx="${3 * u}" ry="${0.42 * u}" fill="#000" opacity=".4" shape-rendering="auto">` +
       `<animate attributeName="rx" values="${3 * u};${2.3 * u};${3 * u}" dur="1.2s" repeatCount="indefinite" ${ease}/></ellipse>` +
       `<g><animateTransform attributeName="transform" type="translate" values="0 0;0 ${-1.1 * u};0 0" dur="1.2s" repeatCount="indefinite" ${ease}/>` +
-      gauge((8 * u) / MARK_W, FILL, level, id) +
-      // A glint every few seconds: the tower lights up for a moment.
-      `<g opacity="0">${shards((8 * u) / MARK_W, '#fff')}` +
-      `<animate attributeName="opacity" values="0;0;.35;0;0" keyTimes="0;0.86;0.9;0.95;1" dur="3.4s" repeatCount="indefinite"/></g>` +
+      crystal(8 * u, 7.7 * u, 'warm', level) +
       `</g></g>`
     )
   }
@@ -215,7 +249,7 @@ export const markShapes = (x: number, y: number, size: number, mode: Mode, level
   const bw = 10.4 * u
   const bh = 9.4 * u
   let s = `<g transform="translate(${ox} ${oy})">`
-  s += gauge((8 * u) / MARK_W, ice, level, id)
+  s += crystal(8 * u, 7.7 * u, 'cold', level)
   s += `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="${1.5 * u}" fill="${HUE.cold}" fill-opacity=".28" stroke="${ice}" stroke-width="${0.38 * u}"/>`
   s += `<path d="M${bx + 0.9 * u} ${by + 2.6 * u}l${1.6 * u} ${-1.6 * u}M${bx + 0.9 * u} ${by + 4.2 * u}l${0.8 * u} ${-0.8 * u}" stroke="#fff" stroke-opacity=".75" stroke-width="${0.32 * u}" stroke-linecap="round"/>`
   for (const ix of [1.4, 4.4, 7.2]) {
@@ -235,7 +269,7 @@ export const markShapes = (x: number, y: number, size: number, mode: Mode, level
 /** The mark beside the chip in the band's row. */
 export const MARK_SIZE = 20
 export const markSvg = (mode: Mode, level = 1): string =>
-  svgDoc(MARK_SIZE, MARK_SIZE, markShapes(0, 0, MARK_SIZE, mode, level, 'tk-band'), false)
+  svgDoc(MARK_SIZE, MARK_SIZE, markShapes(0, 0, MARK_SIZE, mode, level), false)
 
 // ---------- The card, laid out for the band's width ----------
 type TextOpts = { size?: number; w?: number; fill?: string; ls?: number; anchor?: string }
@@ -260,7 +294,7 @@ export const cardSvg = (v: CacheView, kind: Kind, W: number): { source: string; 
     const k = o.compact ? { lab: 24, big: 60, bs: 30, line: 80, cap: 100 } : { lab: 22, big: 56, bs: 30, line: 74, cap: 94 }
     let g = ''
     if (o.header) {
-      g += markShapes(x - 2, y + k.lab - 17, 22, mode, v.level ?? 1, 'tk-card')
+      g += markShapes(x - 2, y + k.lab - 17, 22, mode, v.level ?? 1)
       const c = chipShapes(x + 26, y + k.lab - 13, WORD[mode], HUEM, 11, 1)
       g += c.svg + t(x + 26 + c.w + 8, y + k.lab, 'IDLE', { ls: 1.4 })
     } else {

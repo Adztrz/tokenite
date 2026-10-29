@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="tokenite, animated: the tower fills, the usage dots light up, the 5-hour reset gives way to a run-out forecast, and the cache goes from warm to cold" width="100%">
+  <img src="assets/banner.svg" alt="tokenite, animated: the pixel crystal fills, the usage dots light up, the 5-hour reset gives way to a run-out forecast, and the cache goes from warm to cold" width="100%">
 </p>
 
 <p align="center">
@@ -52,9 +52,9 @@ claude plugin install tokenite --marketplace Adztrz/tokenite
 
 After your first reply the band also tracks the prompt cache, which keeps your chat cheap to continue for one hour after your last request.
 
-- **WARM** (orange, the tower bobs): the cache is live. It shows the minutes left.
-- **COLD** (blue, the tower is frozen in ice): the hour has passed. Your next message re-sends the whole chat, so it costs more. The price shows first.
-- **The tower is a gauge.** It stands as full as your 5-hour window has left, and drains as you work.
+- **WARM** (orange, the crystal bobs): the cache is live. It shows the minutes left.
+- **COLD** (blue, the crystal is frozen in ice): the hour has passed. Your next message re-sends the whole chat, so it costs more. The price shows first.
+- **The crystal is a gauge.** A pixel quartz in Claude's oranges, it stands as full as your 5-hour window has left, one pixel row at a time, and drains as you work.
 - **Heads-up before it goes cold.** Five minutes before the hour is up, a toast says what sending now saves, for example *"Cache goes cold in 5m. Send now and the next message costs $0.04, not $1.46."*
 - **Spend.** The card's footer shows what this session and today have cost so far. Today's total adds up across all your sessions.
 
@@ -91,7 +91,7 @@ tokenite/
 ├── hooks/
 │   ├── hooks.json          points to the module
 │   ├── register.tsx        the band: usage, cache tracking, layout
-│   ├── cache-art.ts        colours, the tower gauge, the cache card, the price table
+│   ├── cache-art.ts        colours, the crystal gauge, the cache card, the price table
 │   ├── forecast.ts         when a window runs out at your current pace
 │   ├── spend.ts            today's spend across sessions
 │   └── font.ts             Outfit, embedded so the drawings render anywhere
