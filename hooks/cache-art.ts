@@ -230,7 +230,7 @@ export const markSvg = (mode: Mode, level = 1): string =>
 type TextOpts = { size?: number; w?: number; fill?: string; ls?: number; anchor?: string }
 
 /** The gap between the row and the card, drawn inside the card. */
-const CARD_TOP = 6
+const CARD_TOP = 4
 
 export const cardSvg = (v: CacheView, kind: Kind, W: number): { source: string; w: number; h: number; alt: string } => {
   const mode = v.mode
@@ -246,7 +246,7 @@ export const cardSvg = (v: CacheView, kind: Kind, W: number): { source: string; 
 
   // How long since the last reply, with the mark and the chip in the header.
   const zoneIdle = (x: number, y: number, w: number, o: { compact?: boolean; header?: boolean } = {}) => {
-    const k = o.compact ? { lab: 24, big: 60, bs: 30, line: 80, cap: 100 } : { lab: 30, big: 72, bs: 38, line: 96, cap: 120 }
+    const k = o.compact ? { lab: 24, big: 60, bs: 30, line: 80, cap: 100 } : { lab: 22, big: 56, bs: 30, line: 74, cap: 94 }
     let g = ''
     if (o.header) {
       g += markShapes(x - 2, y + k.lab - 17, 22, mode, v.level ?? 1, 'tk-card')
@@ -279,7 +279,7 @@ export const cardSvg = (v: CacheView, kind: Kind, W: number): { source: string; 
   // The conversation's size, as a dot grid of the context window.
   const zoneSize = (x: number, y: number, w: number, o: { compact?: boolean } = {}) => {
     const share = v.window > 0 ? Math.min(1, v.tokens / v.window) : 0
-    let g = t(x, y + (o.compact ? 24 : 30), cold ? 'RE-CACHE' : 'IN CACHE', { ls: 1.4 })
+    let g = t(x, y + (o.compact ? 24 : 22), cold ? 'RE-CACHE' : 'IN CACHE', { ls: 1.4 })
     const big = (yy: number, bs: number, ts: number) =>
       `<text x="${x}" y="${yy}" font-weight="600" fill="${TEXT}"><tspan font-size="${bs}">${tok(v.tokens)}</tspan><tspan font-size="${ts}" font-weight="500" fill="${MUTED}" dx="7">tokens</tspan></text>`
     const grid = (gx: number, gy: number, cols: number, step: number) => {
@@ -296,7 +296,7 @@ export const cardSvg = (v: CacheView, kind: Kind, W: number): { source: string; 
     }
     // 25 dots a row on the page; fewer only where the band is too narrow for them.
     const cols = Math.max(10, Math.min(25, Math.floor(w / 9.6)))
-    return g + big(y + 72, 38, 15) + grid(x, y + 90, cols, 9.6) + t(x, y + 120, `${Math.round(share * 100)}% of the ${tok(v.window)} context`, { size: 12, w: 500 })
+    return g + big(y + 56, 30, 14) + grid(x, y + 74, cols, 9.6) + t(x, y + 94, `${Math.round(share * 100)}% of the ${tok(v.window)} context`, { size: 12, w: 500 })
   }
 
   // What the next message costs, by model. One scale for both states (the cold
@@ -304,7 +304,7 @@ export const cardSvg = (v: CacheView, kind: Kind, W: number): { source: string; 
   const zoneCost = (x: number, y: number, colW: number, o: { compact?: boolean } = {}) => {
     const k = o.compact
       ? { lab: 24, base: 100, rows: 6, step: 7, chip: 58, price: 88, name: 102 }
-      : { lab: 30, base: 116, rows: 8, step: 8, chip: 70, price: 104, name: 120 }
+      : { lab: 22, base: 92, rows: 7, step: 8, chip: 46, price: 80, name: 95 }
     let g = t(x, y + k.lab, cold ? 'NEXT MESSAGE COSTS' : 'NEXT MESSAGE COSTS, CACHED', { ls: 1.4 })
     const top = Math.max(...MODELS.map(m => coldCost(m, v.tokens)))
     MODELS.forEach((m, i) => {
@@ -324,19 +324,19 @@ export const cardSvg = (v: CacheView, kind: Kind, W: number): { source: string; 
   let H: number
   let g: string
   if (kind === 'wide') {
-    H = 132
+    H = 106
     // 92 px a model column on the page's full width; tighter near the switch point,
     // where the last column still needs about 90 px for its price.
     const colW = Math.min(92, Math.floor((W - 640 - 103) / 3))
     g = zoneIdle(13, 0, 290, { header: true }) + vline(314, 18, H - 36) + zoneSize(340, 0, 260) + vline(614, 18, H - 36) + zoneCost(640, 0, colW)
   } else if (kind === 'stacked') {
-    H = 266
+    H = 212
     g =
       zoneIdle(13, 0, 290, { header: true }) +
-      vline(314, 18, 96) +
+      vline(314, 18, 76) +
       zoneSize(340, 0, W - 340 - 13) +
-      hline(134) +
-      zoneCost(13, 134, Math.min(160, (W - 26) / 4))
+      hline(110) +
+      zoneCost(13, 110, Math.min(160, (W - 26) / 4))
   } else {
     // Narrow: the cache row above already shows the mark and the chip.
     H = 296
@@ -347,24 +347,23 @@ export const cardSvg = (v: CacheView, kind: Kind, W: number): { source: string; 
       hline(180) +
       zoneCost(13, 182, (W - 26) / 4, { compact: true })
   }
-  // Spend: a row of its own on the card's grid, figure-first like the zones above,
-  // the session's stat under IDLE and today's under the second column.
+  // Spend: a slim strip on the card's grid, a label over a figure, the chat's
+  // under IDLE and today's under the second column.
   if (v.spend) {
     const y = H
     const tight = kind === 'tight'
     const col2 = tight ? Math.round(W / 2) : 340
-    const stat = (x: number, label: string, amount: number, caption: string) =>
-      t(x, y + 30, label, { ls: 1.4 }) +
-      `<text x="${x}" y="${y + 70}" font-weight="600" fill="${TEXT}">` +
-      `<tspan font-size="${tight ? 18 : 22}" font-weight="500" fill="${MUTED}" dy="${tight ? -4 : -6}">~</tspan>` +
-      `<tspan font-size="${tight ? 26 : 34}" dy="${tight ? 4 : 6}" dx="2">${usd(amount)}</tspan></text>` +
-      t(x, y + 92, caption, { size: 12, w: 500 })
+    const stat = (x: number, label: string, amount: number) =>
+      t(x, y + 22, label, { ls: 1.4 }) +
+      `<text x="${x}" y="${y + 50}" font-weight="600" fill="${TEXT}">` +
+      `<tspan font-size="${tight ? 15 : 17}" font-weight="500" fill="${MUTED}" dy="-4">~</tspan>` +
+      `<tspan font-size="${tight ? 22 : 26}" dy="4" dx="2">${usd(amount)}</tspan></text>`
     g +=
       hline(y) +
-      stat(13, 'SPENT THIS SESSION', v.spend.session, 'since this chat began') +
-      vline(tight ? col2 - 14 : 314, y + 18, 78) +
-      stat(col2, 'SPENT TODAY', v.spend.today, 'across every session')
-    H += 108
+      stat(13, 'SPENT THIS CHAT', v.spend.session) +
+      vline(tight ? col2 - 14 : 314, y + 12, 44) +
+      stat(col2, 'SPENT TODAY · ALL CHATS', v.spend.today)
+    H += 62
   }
   const h = H + CARD_TOP
   const body = `<rect width="${W}" height="${h}" fill="${BG}"/><g transform="translate(0 ${CARD_TOP})">` + hline(0) + g + '</g>'

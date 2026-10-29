@@ -99,9 +99,9 @@ test('the card counts this session and today; the terminal says today on the row
 
   const band = await $.ui.mount({ plugin: 'tokenite', surface: 'desktop', component: 'AbovePrompt', props: PROPS })
   const card = JSON.stringify(await band.find({ key: 'card' }))
-  expect(card).toContain('SPENT THIS SESSION')
+  expect(card).toContain('SPENT THIS CHAT')
   expect(card).toContain('$3.50')
-  expect(card).toContain('SPENT TODAY')
+  expect(card).toContain('SPENT TODAY · ALL CHATS')
   expect(card).toContain('$1.50')
   await band.unmount()
 

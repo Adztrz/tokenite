@@ -28,8 +28,8 @@ import { dayOf, tally } from './spend'
 const CELLS = 10
 const LOW_AT = 15
 const TIGHT_CELLS = 6
-/** On a wide row that also carries the cache badge, the bars give up two dots so it all fits on one line. */
-const SHARED_CELLS = 8
+/** On the folded one-liner, beside the cache badge, the bars give up four dots so it all fits on one line. */
+const SHARED_CELLS = 6
 /** How often the band redraws, so the countdown and the warm-to-cold flip stay current. */
 const TICK_MS = 30_000
 /** How long before the cache goes cold the toast warns. */
@@ -259,7 +259,12 @@ export const register: Register = on => {
     const columns = e.props.bodyColumns ?? e.viewport?.columns ?? 100
     const kind = kindOf(columns)
     const isWide = kind === 'wide'
-    const cells = kind === 'tight' ? TIGHT_CELLS : isWide && view ? SHARED_CELLS : CELLS
+    // Folded on a wide band, everything shares one line: no USAGE label, shorter
+    // bars and words, the cache badge beside them. Open, the row has room to spare.
+    const stored = await read($, fold)
+    const opened = (v: CacheView) => Svg !== null && (stored && stored.mode === v.mode ? stored.open : v.mode === 'cold')
+    const oneLine = isWide && view !== null && !opened(view)
+    const cells = kind === 'tight' ? TIGHT_CELLS : oneLine ? SHARED_CELLS : CELLS
 
     const parts = (w: Window) => {
       const left = Math.max(0, Math.round((100 - w.percentUsed) * 10) / 10)
@@ -283,10 +288,10 @@ export const register: Register = on => {
           <Text color={MUTED} bold>{p.name} </Text>
           <Text color={p.col}>{p.d.on}</Text>
           <Text color={EMPTY}>{p.d.off}</Text>
-          <Text color={p.col} bold> {p.left}% left</Text>
+          <Text color={p.col} bold> {p.left}%{oneLine ? '' : ' left'}</Text>
           {p.left < LOW_AT ? <Text color={ALERT} bold> LOW</Text> : null}
           {p.out
-            ? <Text color={TEXT} bold> · out ~{p.out}</Text>
+            ? <Text color={TEXT} bold> · out {oneLine ? '' : '~'}{p.out}</Text>
             : p.reset ? <Text color={MUTED}> · {p.reset}</Text> : null}
         </Box>
       )
@@ -312,7 +317,7 @@ export const register: Register = on => {
       )
     }
 
-    const label = (
+    const label = oneLine ? null : (
       <Box key="label" flexShrink={0} marginRight={isWide ? 2 : 3}>
         <Text color={TEXT} bold>USAGE</Text>
       </Box>
@@ -335,9 +340,8 @@ export const register: Register = on => {
     const cold = mode === 'cold'
     const hue = HUE[mode]
     const mine = mineModel(view)
-    const stored = await read($, fold)
     // Folding needs the card, and the card is a drawing: the terminal stays folded.
-    const open = Svg !== null && (stored && stored.mode === mode ? stored.open : cold)
+    const open = opened(view)
     const toggle = () =>
       update($, fold, f => ({ mode, open: !(f && f.mode === mode ? f.open : mode === 'cold') }))
 
@@ -358,7 +362,7 @@ export const register: Register = on => {
           mine ? <Text key="dot" color={MUTED}> · </Text> : null,
           mine ? <Text key="cost" color={TEXT} bold>{usd(costOf(mine, mode, view.tokens))}</Text> : null,
         ]
-      : [<Text key="left" color={hue} bold>{` ${Math.max(0, TTL_MIN - view.idleMin)}m left`}</Text>]
+      : [<Text key="left" color={hue} bold>{` ${Math.max(0, TTL_MIN - view.idleMin)}m${oneLine ? '' : ' left'}`}</Text>]
     // The card counts spend; the terminal, which has no card, says today's on the row.
     if (!Svg && spent) summary.push(<Text key="spent" color={MUTED}>{` · today ~${usd(spent.today)}`}</Text>)
 
