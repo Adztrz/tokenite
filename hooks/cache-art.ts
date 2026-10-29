@@ -157,7 +157,8 @@ const mix = (a: string, b: string, t: number): string =>
 /**
  * The mark: a pixel quartz point, lit from the top left. One letter a pixel:
  * h and l the tip's light and shade, b d k the prism's lit face, shaded face and
- * edge, s a sparkle beside it, '.' empty. 13 across, 17 down.
+ * edge, r and e where the light catches the ridge and glances off the shaded
+ * face, s a sparkle beside it, '.' empty. 13 across, 17 down.
  */
 const QUARTZ = [
   '.....hl......',
@@ -165,25 +166,28 @@ const QUARTZ = [
   '...hhhlll....',
   '..hhhhllll...',
   '.hhhhhlllll..',
-  '.bhbbbddddk..',
-  '.bhbbbddddk..',
-  '.bhbbbddddk..',
-  '.bbbbbddddk..',
+  '.bhbbrddddk..',
+  '.bhbbrddddk..',
+  '.bhbbbedddk..',
+  '.bbbbbedddk..',
   '.bbbbbddddk..',
   '.bbhbbddddk..',
-  '.bbhbbddddk..',
-  '.bbbbbddddk..',
+  '.bbhbbddedk..',
+  '.bbbbbddedk..',
   '.bbbbbddddk..',
   '..bbbbdddk...',
   '...bbbddk....',
   '....bbdk.....',
 ]
 const QUARTZ_W = 13
+/** The glint sweeps once every this many seconds, a diagonal of pixels this many seconds after the last. */
+const GLINT_EVERY = 5
+const GLINT_STEP = 0.04
 
 /** The crystal's tones, brightest to darkest: Claude orange warm, the blue cold. */
 const TONES: Record<Mode, Record<string, string>> = {
-  warm: { h: '#f6c3ad', l: '#eb9a7a', b: '#d97757', d: '#b95b3d', k: '#8f4129', s: '#fff8f2' },
-  cold: { h: '#d6e6f4', l: '#a9c8e6', b: '#6a9bcc', d: '#4f7fb0', k: '#3a5f88', s: '#ffffff' },
+  warm: { h: '#f6c3ad', l: '#eb9a7a', r: '#e99b7d', b: '#d97757', e: '#c8694a', d: '#b95b3d', k: '#8f4129', s: '#fff8f2' },
+  cold: { h: '#d6e6f4', l: '#a9c8e6', r: '#93b9de', b: '#6a9bcc', e: '#5d8cbe', d: '#4f7fb0', k: '#3a5f88', s: '#ffffff' },
 }
 
 /**
@@ -212,8 +216,26 @@ const crystal = (w: number, h: number, mode: Mode, level: number): string => {
       else lit += cell(x, y, tone[ch] ?? '#fff')
     }),
   )
+  // A glint, warm only: every few seconds a faint light sweeps the lit pixels from
+  // the top left, one diagonal of pixels after the next. The cold crystal is still.
+  let glint = ''
+  if (mode === 'warm') {
+    const bands = QUARTZ_W + QUARTZ.length
+    for (let k = 0; k < bands; k++) {
+      let band = ''
+      QUARTZ.forEach((row, y) => {
+        const x = k - y
+        const ch = row[x]
+        if (x >= 0 && ch && ch !== '.' && ch !== 's' && y >= cut) band += cell(x, y, '#fff')
+      })
+      if (!band) continue
+      const at = (k * GLINT_STEP) / GLINT_EVERY
+      const keys = [0, at, at + GLINT_STEP / GLINT_EVERY, at + (2 * GLINT_STEP) / GLINT_EVERY, 1].map(n => n.toFixed(4)).join(';')
+      glint += `<g opacity="0">${band}<animate attributeName="opacity" values="0;0;.28;0;0" keyTimes="${keys}" dur="${GLINT_EVERY}s" repeatCount="indefinite"/></g>`
+    }
+  }
   return (
-    `<g shape-rendering="crispEdges">${shell}${lit}` +
+    `<g shape-rendering="crispEdges">${shell}${lit}${glint}` +
     (top ? `<g>${top}<animate attributeName="opacity" values="1;.55;1" dur="2.4s" repeatCount="indefinite"/></g>` : '') +
     `<g opacity="0">${spark}<animate attributeName="opacity" values="0;0;1;0;0" keyTimes="0;.6;.75;.9;1" dur="3.2s" repeatCount="indefinite"/></g></g>`
   )

@@ -8,29 +8,30 @@ const C = { canvas: '#141413', card: '#1f1e1d', raised: '#30302e', divider: '#2b
   warm: '#d97757', cold: '#6a9bcc' }
 // The mark: a pixel quartz point, as hooks/cache-art.ts draws it. One letter a pixel:
 // h l the tip's light and shade, b d k the prism's lit face, shaded face and edge,
-// s a sparkle, '.' empty. 13 across, 17 down.
+// r e the light catching the ridge and the shaded face, s a sparkle, '.' empty.
+// 13 across, 17 down.
 const QUARTZ = [
   '.....hl......',
   '....hhll...s.',
   '...hhhlll....',
   '..hhhhllll...',
   '.hhhhhlllll..',
-  '.bhbbbddddk..',
-  '.bhbbbddddk..',
-  '.bhbbbddddk..',
-  '.bbbbbddddk..',
+  '.bhbbrddddk..',
+  '.bhbbrddddk..',
+  '.bhbbbedddk..',
+  '.bbbbbedddk..',
   '.bbbbbddddk..',
   '.bbhbbddddk..',
-  '.bbhbbddddk..',
-  '.bbbbbddddk..',
+  '.bbhbbddedk..',
+  '.bbbbbddedk..',
   '.bbbbbddddk..',
   '..bbbbdddk...',
   '...bbbddk....',
   '....bbdk.....',
 ]
 const TONES = {
-  warm: { h: '#f6c3ad', l: '#eb9a7a', b: '#d97757', d: '#b95b3d', k: '#8f4129', s: '#fff8f2' },
-  cold: { h: '#d6e6f4', l: '#a9c8e6', b: '#6a9bcc', d: '#4f7fb0', k: '#3a5f88', s: '#ffffff' },
+  warm: { h: '#f6c3ad', l: '#eb9a7a', r: '#e99b7d', b: '#d97757', e: '#c8694a', d: '#b95b3d', k: '#8f4129', s: '#fff8f2' },
+  cold: { h: '#d6e6f4', l: '#a9c8e6', r: '#93b9de', b: '#6a9bcc', e: '#5d8cbe', d: '#4f7fb0', k: '#3a5f88', s: '#ffffff' },
 }
 /**
  * The crystal at (x0, y0), `px` a pixel, lit from the bottom row up to `level`, the
@@ -53,6 +54,18 @@ const crystal = (x0, y0, px, tone, level = 1, o = {}) => {
   QUARTZ.forEach((row, y) => [...row].forEach((ch, x) => {
     if (ch === 's') g += `<rect${o.sparkClass ? ` ${o.sparkClass}` : ''} x="${x0 + x * px}" y="${y0 + y * px}" width="${px}" height="${px}" fill="${tone.s}"/>`
   }))
+  // The glint: a faint light sweeping the lit pixels a diagonal at a time.
+  if (o.glint) {
+    for (let k = 0; k < 13 + n; k++) {
+      let band = ''
+      QUARTZ.forEach((row, y) => {
+        const x = k - y
+        const ch = row[x]
+        if (x >= 0 && ch && ch !== '.' && ch !== 's' && y >= cut) band += `<rect x="${x0 + x * px}" y="${y0 + y * px}" width="${px + 0.02}" height="${px + 0.02}" fill="#fff"/>`
+      })
+      if (band) g += `<g class="glint" style="animation-delay:${(3 + k * 0.04).toFixed(2)}s">${band}</g>`
+    }
+  }
   return g + '</g>'
 }
 const markDoc = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 13 17">${crystal(0, 0, 1, TONES.warm)}</svg>\n`
@@ -83,6 +96,8 @@ text{font-family:O,Inter,system-ui,sans-serif}
 @keyframes row{from{opacity:0}to{opacity:1}}
 .spark{animation:spark 3.2s ease-in-out 2s infinite}
 @keyframes spark{0%,60%,100%{opacity:0}75%{opacity:1}}
+.glint{opacity:0;animation:glint 5s linear infinite}
+@keyframes glint{0%{opacity:0}1%{opacity:.28}2%,100%{opacity:0}}
 .ring{animation:ring 2.4s ${EASE} 1s infinite}
 @keyframes ring{from{opacity:.7;transform:scale(1)}to{opacity:0;transform:scale(3.2)}}
 .dots{animation:breathe 8s ease-in-out infinite}
@@ -112,6 +127,7 @@ g += '</g>'
 g += rise(0.05, crystal(88, 92, 5.4, TONES.warm, 0.62, {
   rowClass: (y, n) => `class="row" style="animation-delay:${(0.5 + (n - 1 - y) * 0.08).toFixed(2)}s"`,
   sparkClass: 'class="spark"',
+  glint: true,
 }))
 g += rise(0.25, `<circle class="ring" cx="100" cy="214" r="4" fill="none" stroke="${C.bone}" stroke-width="1.5"/><circle cx="100" cy="214" r="4" fill="${C.bone}"/>` +
   t(114, 219, 'CLAUDE CODE MOD', { size: 14, w: 500, fill: C.muted, ls: 2.2 }))
