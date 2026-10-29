@@ -91,8 +91,28 @@ export const viewOf = (c: CacheFacts | null, now: number): CacheView | null => {
 
 const pull = async ($: EngineInterface): Promise<void> => {
   const u = await $.session.usage()
-  await update($, windows, () => clean(u.rateLimits))
-  await record($, u.rateLimits)
+  await remember($, u.rateLimits)
+}
+
+/** A fresh reading onto the band, and into the store so the next session opens with it. */
+const remember = async ($: EngineInterface, list: readonly Window[]): Promise<void> => {
+  if (list.length === 0) return
+  const next = clean(list)
+  await update($, windows, () => next)
+  await $.store.set('windows', next)
+  await record($, list)
+}
+
+/**
+ * The last session's reading, until this one has its own: a window whose reset
+ * has passed since then has started over, so it shows full with no reset time.
+ */
+const recall = async ($: EngineInterface): Promise<void> => {
+  const saved = (await $.store.get('windows')) as Window[] | undefined
+  if (!saved || saved.length === 0) return
+  const now = await $.clock.now()
+  const passed = (w: Window) => w.resetsAt !== undefined && Date.parse(w.resetsAt) <= now
+  await update($, windows, () => saved.map(w => (passed(w) ? { kind: w.kind, percentUsed: 0 } : w)))
 }
 
 /** Each window's reading onto its trail, kept in the store so the next session starts with the pace. */
@@ -149,6 +169,7 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     const stored = (await $.store.get('trails')) as Trails | undefined
     if (stored) await update($, trails, () => stored)
+    await recall($)
     await pull($)
     const u = await $.session.usage()
     sessionKey = String(u.startedAt)
@@ -162,8 +183,7 @@ export const register: Register = on => {
 
   on('session.measure', async ($, e, next) => {
     if (e.changed.includes('rateLimits')) {
-      await update($, windows, () => clean(e.rateLimits))
-      await record($, e.rateLimits)
+      await remember($, e.rateLimits)
     }
     if (e.changed.includes('cost') && e.cost) await count($, e.cost.usd)
     if (e.changed.includes('context') && e.context.tokens && e.context.tokens > 0) {

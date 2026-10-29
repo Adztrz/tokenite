@@ -347,13 +347,24 @@ export const cardSvg = (v: CacheView, kind: Kind, W: number): { source: string; 
       hline(180) +
       zoneCost(13, 182, (W - 26) / 4, { compact: true })
   }
-  // The spend footer: under a hairline, what this session and today have cost.
+  // Spend: a row of its own on the card's grid, figure-first like the zones above,
+  // the session's stat under IDLE and today's under the second column.
   if (v.spend) {
-    g += hline(H + 4) + t(13, H + 26, 'SPENT', { ls: 1.4 })
-    g += `<text x="70" y="${H + 26}" font-size="12" font-weight="500" fill="${MUTED}">` +
-      `<tspan font-weight="700" fill="${TEXT}">~${usd(v.spend.session)}</tspan> this session` +
-      `<tspan dx="10">·</tspan><tspan dx="10" font-weight="700" fill="${TEXT}">~${usd(v.spend.today)}</tspan> today</text>`
-    H += 36
+    const y = H
+    const tight = kind === 'tight'
+    const col2 = tight ? Math.round(W / 2) : 340
+    const stat = (x: number, label: string, amount: number, caption: string) =>
+      t(x, y + 30, label, { ls: 1.4 }) +
+      `<text x="${x}" y="${y + 70}" font-weight="600" fill="${TEXT}">` +
+      `<tspan font-size="${tight ? 18 : 22}" font-weight="500" fill="${MUTED}" dy="${tight ? -4 : -6}">~</tspan>` +
+      `<tspan font-size="${tight ? 26 : 34}" dy="${tight ? 4 : 6}" dx="2">${usd(amount)}</tspan></text>` +
+      t(x, y + 92, caption, { size: 12, w: 500 })
+    g +=
+      hline(y) +
+      stat(13, 'SPENT THIS SESSION', v.spend.session, 'since this chat began') +
+      vline(tight ? col2 - 14 : 314, y + 18, 78) +
+      stat(col2, 'SPENT TODAY', v.spend.today, 'across every session')
+    H += 108
   }
   const h = H + CARD_TOP
   const body = `<rect width="${W}" height="${h}" fill="${BG}"/><g transform="translate(0 ${CARD_TOP})">` + hline(0) + g + '</g>'

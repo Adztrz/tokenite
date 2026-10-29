@@ -99,11 +99,33 @@ test('the card counts this session and today; the terminal says today on the row
 
   const band = await $.ui.mount({ plugin: 'tokenite', surface: 'desktop', component: 'AbovePrompt', props: PROPS })
   const card = JSON.stringify(await band.find({ key: 'card' }))
-  expect(card).toContain('~$3.50')
-  expect(card).toContain('~$1.50')
+  expect(card).toContain('SPENT THIS SESSION')
+  expect(card).toContain('$3.50')
+  expect(card).toContain('SPENT TODAY')
+  expect(card).toContain('$1.50')
   await band.unmount()
 
   const row = await $.ui.mount({ plugin: 'tokenite', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
   expect(await row.find({ text: ' · today ~$1.50' })).toBeDefined()
   await row.unmount()
+})
+
+test('a new session opens with the last reading, a window past its reset shown full', async ($, on) => {
+  mock.store(on, {
+    windows: [
+      { kind: 'seven_day', percentUsed: 30, resetsAt: '2099-01-03T00:00:00Z' },
+      { kind: 'five_hour', percentUsed: 80, resetsAt: '2098-12-31T21:00:00Z' },
+    ],
+  })
+  mock.clock(on, { now: NOW })
+  on('session.start', ($, e) => ({ cwd: e.cwd }))
+  // No reading yet in this session.
+  on('session.usage', () => ({ value: { startedAt: 1, context: { window: 1000000 }, rateLimits: [] } }))
+  await $.session.start({ surface: 'terminal', isInteractive: true, cwd: '/work' })
+
+  const band = await $.ui.mount({ plugin: 'tokenite', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  expect(await band.find({ text: '70% left' })).toBeDefined()
+  expect(await band.find({ text: '100% left' })).toBeDefined()
+  expect(await band.find({ text: 'USAGE · waiting for the first reply' })).toBeUndefined()
+  await band.unmount()
 })
