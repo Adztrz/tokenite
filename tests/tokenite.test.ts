@@ -1,6 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 
-import { addSample, runsOutIn } from '../hooks/forecast'
+import { addSample, runsOutIn, weekRunsOutIn } from '../hooks/forecast'
 import { dayOf, tally } from '../hooks/spend'
 
 const NOW = Date.parse('2098-12-31T22:00:00Z')
@@ -26,6 +26,27 @@ test('the forecast reads the pace and says when a window runs dry, unless it res
   expect(runsOutIn(addSample(trail, NOW + MIN, 2), NOW + MIN)).toBeNull()
   // Readings an hour stale say nothing about now.
   expect(runsOutIn(trail, NOW + 61 * MIN)).toBeNull()
+})
+
+test('the weekly run-out waits out each 5-hour reset when the 5-hour window runs dry first', async () => {
+  const H = 60 * MIN
+  // The week climbs 1 point in 30 minutes; the 5-hour window, 20 points: it runs dry in 2.5 h of work.
+  const week = [{ at: NOW - 30 * MIN, pct: 49 }, { at: NOW, pct: 50 }]
+  const five = [{ at: NOW - 30 * MIN, pct: 40 }, { at: NOW, pct: 60 }]
+  const weekReset = '2099-01-06T22:00:00Z'
+  const fiveReset = '2099-01-01T00:00:00Z' // two hours from now
+  // At the bare pace the week's 50 points last 25 h.
+  expect(runsOutIn(week, NOW, weekReset)).toBe(25 * H)
+  // Held back: 1 h of work now (2 points), then 2.5 h a 5-hour cycle (5 points),
+  // nine cycles to 47 h with 3 points left, and 1.5 h more.
+  expect(weekRunsOutIn(week, NOW, weekReset, five, fiveReset)).toBe(48.5 * H)
+  // A 5-hour pace that never runs it dry holds nothing back.
+  const slow = [{ at: NOW - 30 * MIN, pct: 40 }, { at: NOW, pct: 41 }]
+  expect(weekRunsOutIn(week, NOW, weekReset, slow, fiveReset)).toBe(25 * H)
+  // No 5-hour pace at all: the bare run-out.
+  expect(weekRunsOutIn(week, NOW, weekReset, [], fiveReset)).toBe(25 * H)
+  // When the week resets before it would run dry, there is nothing to say.
+  expect(weekRunsOutIn(week, NOW, '2099-01-01T12:00:00Z', five, fiveReset)).toBeNull()
 })
 
 test('the ledger counts what each session adds today, and starts over on a new day', async () => {

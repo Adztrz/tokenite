@@ -7,7 +7,7 @@ import {
   bandPx, cardKindOf, cardSvg, chipSvg, coldCost, costOf, familyOf, fmtIdle, kindOf, mineModel, markSvg, usd, warmCost,
 } from './cache-art'
 import type { CacheView } from './cache-art'
-import { addSample, runsOutIn } from './forecast'
+import { addSample, runsOutIn, weekRunsOutIn } from './forecast'
 import { dayOf, tally } from './spend'
 
 // A band above the prompt in Claude's palette: ivory and grey text,
@@ -275,7 +275,12 @@ export const register: Register = on => {
         d: dots(left, cells),
         reset: fmtReset(w.resetsAt, now),
         // At this pace the window runs dry before it resets: say when, in the reset's place.
-        out: (eta => (eta === null ? '' : fmtDur(eta)))(runsOutIn(tracks[w.kind] ?? [], now, w.resetsAt)),
+        // The week only moves while the 5-hour window has room, so its run-out waits out each 5-hour reset.
+        out: (eta => (eta === null ? '' : fmtDur(eta)))(
+          w.kind === 'seven_day'
+            ? weekRunsOutIn(tracks[w.kind] ?? [], now, w.resetsAt, tracks.five_hour ?? [], five?.resetsAt)
+            : runsOutIn(tracks[w.kind] ?? [], now, w.resetsAt),
+        ),
       }
     }
 
