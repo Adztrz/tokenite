@@ -53,8 +53,8 @@ test('a cold cache opens the card with the re-cache price, and Hide folds it to 
   const card = await band.find({ key: 'card' })
   expect(card).toBeDefined()
   expect(JSON.stringify(card)).toContain('Cache cold. Idle 3d 9h. Next message re-caches 770k tokens.')
-  // The page's width: 80 columns is a 1020 px band.
-  expect(JSON.stringify(card)).toContain('width=\\"1020\\"')
+  // The page's width: 80 columns is an 816 px band, at 9.6 px a cell.
+  expect(JSON.stringify(card)).toContain('width=\\"816\\"')
 
   await band.press({ key: 'cache-fold' })
   expect(await band.find({ key: 'card' })).toBeUndefined()
@@ -82,8 +82,8 @@ test('squeezed, the folded cache stacks as a third block, then takes its own row
   const narrow = await $.ui.mount({ plugin: 'tokenite', surface: 'desktop', component: 'AbovePrompt', props: { ...PROPS, bodyColumns: 33 } })
   expect(await narrow.find({ key: 'cache' })).toBeDefined()
   await narrow.press({ key: 'cache-fold' })
-  // Narrow's card is the compact one: 38 columns is a 456 px band.
-  expect(JSON.stringify(await narrow.find({ key: 'card' }))).toContain('width=\\"456\\"')
+  // Narrow's card is the compact one: 38 columns is a 364 px band.
+  expect(JSON.stringify(await narrow.find({ key: 'card' }))).toContain('width=\\"364\\"')
   await narrow.unmount()
 })
 

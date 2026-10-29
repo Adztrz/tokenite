@@ -38,11 +38,22 @@ export const TIGHT_AT = 42
 export const kindOf = (columns: number): Kind => (columns >= WIDE_AT ? 'wide' : columns >= TIGHT_AT ? 'stacked' : 'tight')
 
 /**
- * The band's width in CSS pixels for a column count: the engine keeps 5 cells
- * for its [-], and a cell is 12 px (the app's code font advance). Rounds down,
- * so the card never runs past the slot; the few pixels left are band colour.
+ * Pixels a cell is taken for. The app draws the band in its code font, whose
+ * advance differs by platform and font: about 12 px on some, under 10 on others.
+ * Too large a guess makes the app shrink the card to the slot while keeping the
+ * height it was given, which leaves empty rows under it; too small leaves a
+ * margin at the right. 9.6 px, a 16 px monospace's advance, errs to the margin.
  */
-export const bandPx = (columns: number): number => (columns + 5) * 12
+export const CELL_PX = 9.6
+
+/**
+ * The band's width in CSS pixels for a column count: the engine keeps 5 cells
+ * for its [-]. Rounds down, so the card never runs past the slot.
+ */
+export const bandPx = (columns: number): number => Math.floor((columns + 5) * CELL_PX)
+
+/** The card's own layout, by its width in pixels: three zones abreast, two over one, or one column. */
+export const cardKindOf = (W: number): Kind => (W >= 860 ? 'wide' : W >= 480 ? 'stacked' : 'tight')
 
 // $ per million tokens: input, and the cache read. The 1-hour cache write is 2 times
 // input. Haiku 5.5 is $0.10 up to 100K tokens and $0.50 above; long sessions use the
@@ -323,12 +334,24 @@ export const cardSvg = (v: CacheView, kind: Kind, W: number): { source: string; 
 
   let H: number
   let g: string
+  // Where the second column starts and the line before it, for the spend strip to line up.
+  let split = { v1: 314, x2: 340 }
   if (kind === 'wide') {
     H = 106
-    // 92 px a model column on the page's full width; tighter near the switch point,
-    // where the last column still needs about 90 px for its price.
-    const colW = Math.min(92, Math.floor((W - 640 - 103) / 3))
-    g = zoneIdle(13, 0, 290, { header: true }) + vline(314, 18, H - 36) + zoneSize(340, 0, 260) + vline(614, 18, H - 36) + zoneCost(640, 0, colW)
+    // The zones share the width: idle and size in proportion, the prices the rest,
+    // 92 px a model column at most, the last still needing about 90 px for its price.
+    const w1 = Math.round(W * 0.27)
+    const x2 = 13 + w1 + 24
+    const w2 = Math.round(W * 0.25)
+    const x3 = x2 + w2 + 24
+    const colW = Math.min(92, Math.floor((W - x3 - 103) / 3))
+    split = { v1: 13 + w1 + 11, x2 }
+    g =
+      zoneIdle(13, 0, w1, { header: true }) +
+      vline(split.v1, 18, H - 36) +
+      zoneSize(x2, 0, w2) +
+      vline(x2 + w2 + 11, 18, H - 36) +
+      zoneCost(x3, 0, colW)
   } else if (kind === 'stacked') {
     H = 212
     g =
@@ -352,7 +375,7 @@ export const cardSvg = (v: CacheView, kind: Kind, W: number): { source: string; 
   if (v.spend) {
     const y = H
     const tight = kind === 'tight'
-    const col2 = tight ? Math.round(W / 2) : 340
+    const col2 = tight ? Math.round(W / 2) : split.x2
     const stat = (x: number, label: string, amount: number) =>
       t(x, y + 22, label, { ls: 1.4 }) +
       `<text x="${x}" y="${y + 50}" font-weight="600" fill="${TEXT}">` +
@@ -361,7 +384,7 @@ export const cardSvg = (v: CacheView, kind: Kind, W: number): { source: string; 
     g +=
       hline(y) +
       stat(13, 'SPENT THIS CHAT', v.spend.session) +
-      vline(tight ? col2 - 14 : 314, y + 12, 44) +
+      vline(tight ? col2 - 14 : split.v1, y + 12, 44) +
       stat(col2, 'SPENT TODAY · ALL CHATS', v.spend.today)
     H += 62
   }

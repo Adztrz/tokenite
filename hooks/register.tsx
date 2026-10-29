@@ -4,7 +4,7 @@ import type { EngineInterface, Register } from 'claude-code'
 import type { CacheFacts, Fold, Ledger, Spend, Trails, Window } from '../types'
 import {
   ALERT, BG, BODY, PRIMARY, EMPTY, HUE, INK, MODELS, MUTED, MARK_SIZE, TEXT, TTL_MIN, TTL_MS, WORD,
-  bandPx, cardSvg, chipSvg, coldCost, costOf, familyOf, fmtIdle, kindOf, mineModel, markSvg, usd, warmCost,
+  bandPx, cardKindOf, cardSvg, chipSvg, coldCost, costOf, familyOf, fmtIdle, kindOf, mineModel, markSvg, usd, warmCost,
 } from './cache-art'
 import type { CacheView } from './cache-art'
 import { addSample, runsOutIn } from './forecast'
@@ -434,13 +434,11 @@ export const register: Register = on => {
 
     let card = null
     if (open && Svg) {
-      const c = cardSvg(view, kind, bandPx(columns))
+      const W = bandPx(columns)
+      const c = cardSvg(view, cardKindOf(W), W)
       card = (
         <Box key="card" flexDirection="row">
-          {/* No fixed size: the band's slot is narrower than the column count suggests on
-              some screens, and a fixed box then kept empty height under the scaled card.
-              Left to itself the card fits the slot and its height follows. */}
-          <Svg source={c.source} alt={c.alt} isInteractive={kind !== 'tight'} />
+          <Svg source={c.source} alt={c.alt} width={c.w} height={c.h} isInteractive={kind !== 'tight'} />
         </Box>
       )
     }
