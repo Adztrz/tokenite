@@ -64,7 +64,7 @@ test('the ledger counts what each session adds today, and starts over on a new d
   expect(dayOf(new Date(2098, 11, 31, 23, 59).getTime())).toBe('2098-12-31')
 })
 
-test('a window on pace to run dry says when, in the place of its reset', async ($, on) => {
+test('a window on pace to run dry says when, beside its reset', async ($, on) => {
   const windows = [
     { kind: 'five_hour', percentUsed: 60, resetsAt: '2099-01-01T03:00:00Z' },
     { kind: 'seven_day', percentUsed: 10 },
@@ -78,6 +78,8 @@ test('a window on pace to run dry says when, in the place of its reset', async (
   for (const surface of ['terminal', 'desktop'] as const) {
     const band = await $.ui.mount({ plugin: 'tokenite', surface, component: 'AbovePrompt', props: PROPS })
     expect(await band.find({ text: ' · out ~2h 0m' })).toBeDefined()
+    // The reset still shows beside it.
+    expect(await band.find({ text: ' · ↻ 5h 0m' })).toBeDefined()
     await band.unmount()
   }
 })

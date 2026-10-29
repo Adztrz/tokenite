@@ -153,18 +153,18 @@ const dots = (x, y, cells, on, col) => {
 }
 b += t(cx + 28, by, 'USAGE', { size: 16, w: 600, fill: C.strong, ls: 1.2 })
 b += t(cx + 120, by, '7D', { size: 16, w: 600, fill: C.muted }) + dots(cx + 156, by - 5, 10, 8, C.bone)
-b += t(cx + 296, by, '84% left', { size: 16, w: 600, fill: C.bone }) + t(cx + 372, by, '· 3d 4h', { size: 16, fill: C.muted })
+b += t(cx + 296, by, '84% left', { size: 16, w: 600, fill: C.bone }) + t(cx + 372, by, '· ↻ 3d 4h', { size: 16, fill: C.muted })
 b += t(cx + 480, by, '5H', { size: 16, w: 600, fill: C.muted }) + dots(cx + 516, by - 5, 10, 6, C.text)
 b += t(cx + 656, by, '62% left', { size: 16, w: 600, fill: C.text })
-// The 5H reset gives way to the forecast while the pace would run it dry first.
-b += `<g class="f1">${t(cx + 732, by, '· 4h 57m', { size: 16, fill: C.muted })}</g>`
-b += `<g class="f2">${t(cx + 732, by, '· out ~1h 40m', { size: 16, w: 600, fill: C.strong })}</g>`
+// The forecast joins the 5H reset while the pace would run it dry first.
+b += `<g class="f1">${t(cx + 732, by, '· ↻ 4h 57m', { size: 16, fill: C.muted })}</g>`
+b += `<g class="f2">${t(cx + 732, by, '· out ~1h 40m', { size: 16, w: 600, fill: C.strong })}${t(cx + 846, by, '· ↻ 4h 57m', { size: 16, fill: C.muted })}</g>`
 // The cache: WARM with the crystal in orange, then COLD in blue with the re-cache price.
 const badge = (fill, word, chipW, after, afterFill) =>
-  crystal(cx + 870, cy + 22, 1.4, word === 'WARM' ? TONES.warm : TONES.cold, 0.62) +
-  `<rect x="${cx + 900}" y="${cy + 22}" width="${chipW}" height="24" rx="12" fill="${fill}"/>` +
-  t(cx + 900 + chipW / 2, by, word, { size: 14, w: 700, fill: C.canvas, ls: 1, anchor: 'middle' }) +
-  t(cx + 912 + chipW, by, after, { size: 16, w: 600, fill: afterFill })
+  crystal(cx + 990, cy + 22, 1.4, word === 'WARM' ? TONES.warm : TONES.cold, 0.62) +
+  `<rect x="${cx + 1020}" y="${cy + 22}" width="${chipW}" height="24" rx="12" fill="${fill}"/>` +
+  t(cx + 1020 + chipW / 2, by, word, { size: 14, w: 700, fill: C.canvas, ls: 1, anchor: 'middle' }) +
+  t(cx + 1032 + chipW, by, after, { size: 16, w: 600, fill: afterFill })
 b += `<g class="a">${badge(C.warm, 'WARM', 66, '53m left', C.warm)}</g>`
 b += `<g class="b">${badge(C.cold, 'COLD', 60, '12h 45m · $1.46', C.cold)}</g>`
 b += `<rect x="${cx + cw - 96}" y="${cy + 18}" width="72" height="32" rx="8" fill="none" stroke="${C.border}"/>` + t(cx + cw - 60, by, 'Hide', { size: 15, w: 500, fill: C.text, anchor: 'middle' })

@@ -46,7 +46,7 @@ claude plugin install tokenite --marketplace Adztrz/tokenite
 - Each dot bar shows what is **left**, not what is used.
 - Next to each one is when it resets, for example `· 3d 9h`.
 - Under 15% left, a bold **LOW** appears.
-- **Forecast:** if you're on pace to use a window up before it resets, the reset time is replaced by when you'll run out, for example `· out ~1h 40m`. The pace is read from the last hour of readings and carries over between sessions. The 7-day forecast also waits out each 5-hour reset: when your pace would use up the 5-hour window, the week only moves again once it resets.
+- **Forecast:** if you're on pace to use a window up before it resets, the band adds when you'll run out, for example `· out ~1h 40m · ↻ 4h 57m`, with the reset time still beside it. The pace is read from the last hour of readings and carries over between sessions. The 7-day forecast also waits out each 5-hour reset: when your pace would use up the 5-hour window, the week only moves again once it resets.
 
 ### ● The prompt cache
 

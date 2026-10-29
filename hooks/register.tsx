@@ -295,9 +295,9 @@ export const register: Register = on => {
           <Text color={EMPTY}>{p.d.off}</Text>
           <Text color={p.col} bold> {p.left}%{oneLine ? '' : ' left'}</Text>
           {p.left < LOW_AT ? <Text color={ALERT} bold> LOW</Text> : null}
-          {p.out
-            ? <Text color={TEXT} bold> · out {oneLine ? '' : '~'}{p.out}</Text>
-            : p.reset ? <Text color={MUTED}> · {p.reset}</Text> : null}
+          {/* The run-out when the pace gets there first, and always the reset, ↻. */}
+          {p.out ? <Text color={TEXT} bold> · out {oneLine ? '' : '~'}{p.out}</Text> : null}
+          {p.reset ? <Text color={MUTED}> · ↻ {p.reset}</Text> : null}
         </Box>
       )
     }
@@ -315,9 +315,8 @@ export const register: Register = on => {
             <Text color={p.col} bold>{p.left}% left</Text>
             {p.left < LOW_AT ? <Text color={ALERT} bold> LOW</Text> : null}
           </Box>
-          {p.out
-            ? <Text color={TEXT} bold>out in ~{p.out}</Text>
-            : p.reset ? <Text color={MUTED}>resets {p.reset}</Text> : null}
+          {p.reset ? <Text color={MUTED}>resets {p.reset}</Text> : null}
+          {p.out ? <Text color={TEXT} bold>out in ~{p.out}</Text> : null}
         </Box>
       )
     }
