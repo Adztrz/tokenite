@@ -30,6 +30,8 @@ const LOW_AT = 15
 const TIGHT_CELLS = 6
 /** On the folded one-liner, beside the cache badge, the bars give up four dots so it all fits on one line. */
 const SHARED_CELLS = 6
+/** On the one-liner above the open card, with only the button beside it. */
+const OPEN_CELLS = 8
 /** How often the band redraws, so the countdown and the warm-to-cold flip stay current. */
 const TICK_MS = 30_000
 /** How long before the cache goes cold the toast warns. */
@@ -259,12 +261,13 @@ export const register: Register = on => {
     const columns = e.props.bodyColumns ?? e.viewport?.columns ?? 100
     const kind = kindOf(columns)
     const isWide = kind === 'wide'
-    // Folded on a wide band, everything shares one line: no USAGE label, shorter
-    // bars and words, the cache badge beside them. Open, the row has room to spare.
     const stored = await read($, fold)
     const opened = (v: CacheView) => Svg !== null && (stored && stored.mode === v.mode ? stored.open : v.mode === 'cold')
-    const oneLine = isWide && view !== null && !opened(view)
-    const cells = kind === 'tight' ? TIGHT_CELLS : oneLine ? SHARED_CELLS : CELLS
+    // Once there is a cache, a wide band keeps its usage to one compact line, folded
+    // or open: no label, shorter words. Folded, the bars also make room for the badge.
+    const oneLine = isWide && view !== null
+    const folded = oneLine && view !== null && !opened(view)
+    const cells = kind === 'tight' ? TIGHT_CELLS : folded ? SHARED_CELLS : oneLine ? OPEN_CELLS : CELLS
 
     const parts = (w: Window) => {
       const left = Math.max(0, Math.round((100 - w.percentUsed) * 10) / 10)
