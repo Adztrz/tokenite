@@ -104,6 +104,8 @@ export type CacheView = {
   level?: number
   /** What this session and today have cost, for the card's footer. */
   spend?: { session: number; today: number }
+  /** Keep-warm's receipt for the card: all it has saved, and this window's pings. */
+  keep?: { saved: number; pings: number; pingUsd: number }
 }
 
 export const mineModel = (v: CacheView): Model | undefined => MODELS.find(m => m.id === v.mine)
@@ -142,8 +144,8 @@ export const chipShapes = (x: number, y: number, word: string, fill: string, siz
 }
 
 /** The WARM or COLD chip beside the mark in the band's row. */
-export const chipSvg = (mode: Mode): { source: string; w: number; h: number } => {
-  const c = chipShapes(0, 0, WORD[mode], HUE[mode], 11, 1)
+export const chipSvg = (mode: Mode, word: string = WORD[mode]): { source: string; w: number; h: number } => {
+  const c = chipShapes(0, 0, word, HUE[mode], 11, 1)
   return { source: svgDoc(c.w, c.h, c.svg, true), w: c.w, h: c.h }
 }
 
@@ -391,7 +393,7 @@ export const cardSvg = (v: CacheView, kind: Kind, W: number): { source: string; 
   let H: number
   let g: string
   // Where the second column starts and the line before it, for the spend strip to line up.
-  let split = { v1: 314, x2: 340 }
+  let split = { v1: 314, x2: 340, x3: 0 }
   if (kind === 'wide') {
     H = 106
     // The zones share the width: idle and size in proportion, the prices the rest,
@@ -401,7 +403,7 @@ export const cardSvg = (v: CacheView, kind: Kind, W: number): { source: string; 
     const w2 = Math.round(W * 0.25)
     const x3 = x2 + w2 + 24
     const colW = Math.min(92, Math.floor((W - x3 - 103) / 3))
-    split = { v1: 13 + w1 + 11, x2 }
+    split = { v1: 13 + w1 + 11, x2, x3 }
     g =
       zoneIdle(13, 0, w1, { header: true }) +
       vline(split.v1, 18, H - 36) +
@@ -432,17 +434,30 @@ export const cardSvg = (v: CacheView, kind: Kind, W: number): { source: string; 
     const y = H
     const tight = kind === 'tight'
     const col2 = tight ? Math.round(W / 2) : split.x2
-    const stat = (x: number, label: string, amount: number) =>
-      t(x, y + 22, label, { ls: 1.4 }) +
-      `<text x="${x}" y="${y + 50}" font-weight="600" fill="${TEXT}">` +
+    const stat = (x: number, label: string, amount: number, base = y) =>
+      t(x, base + 22, label, { ls: 1.4 }) +
+      `<text x="${x}" y="${base + 50}" font-weight="600" fill="${TEXT}">` +
       `<tspan font-size="${tight ? 15 : 17}" font-weight="500" fill="${MUTED}" dy="-4">~</tspan>` +
       `<tspan font-size="${tight ? 22 : 26}" dy="4" dx="2">${usd(amount)}</tspan></text>`
+    const keepStat = (label: string, amount: number) => stat(0, label, amount, 0)
     g +=
       hline(y) +
       stat(13, 'SPENT THIS CHAT', v.spend.session) +
       vline(tight ? col2 - 14 : split.v1, y + 12, 44) +
       stat(col2, 'SPENT TODAY · ALL CHATS', v.spend.today)
     H += 62
+    // Keep-warm's receipt: the third column on a wide card, a strip of its own otherwise.
+    if (v.keep) {
+      const pings = v.keep.pings === 1 ? '1 PING' : `${v.keep.pings} PINGS`
+      const label = `KEEP-WARM SAVED · ${pings} ${usd(v.keep.pingUsd)}`
+      if (kind === 'wide') {
+        g += vline(split.x3 - 13, y + 12, 44)
+        g += `<g transform="translate(${split.x3} ${y})">${keepStat(label, v.keep.saved)}</g>`
+      } else {
+        g += hline(H) + `<g transform="translate(13 ${H})">${keepStat(label, v.keep.saved)}</g>`
+        H += 62
+      }
+    }
   }
   const h = H + CARD_TOP
   const body = `<rect width="${W}" height="${h}" fill="${BG}"/><g transform="translate(0 ${CARD_TOP})">` + hline(0) + g + '</g>'

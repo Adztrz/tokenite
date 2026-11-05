@@ -19,6 +19,7 @@ const COLD_IDLE = (3 * 24 + 9) * 3600 // 3d 9h: cold
 test('a warm cache shows the mark, the WARM chip and the minutes left, folded', async ($, on) => {
   mock.store(on)
   mock.clock(on, { now: NOW })
+  on('command.register', ($, e) => ({ value: { command: e.name } }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1000000 }, rateLimits: WINDOWS } }))
   on('classic.SessionStart', () => ({}))
@@ -43,6 +44,7 @@ test('a warm cache shows the mark, the WARM chip and the minutes left, folded', 
 test('a cold cache opens the card with the re-cache price, and Hide folds it to one row', async ($, on) => {
   mock.store(on)
   mock.clock(on, { now: NOW })
+  on('command.register', ($, e) => ({ value: { command: e.name } }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1000000 }, rateLimits: WINDOWS } }))
   on('classic.SessionStart', () => ({}))
@@ -67,6 +69,7 @@ test('a cold cache opens the card with the re-cache price, and Hide folds it to 
 test('squeezed, the folded cache stacks as a third block, then takes its own row', async ($, on) => {
   mock.store(on)
   mock.clock(on, { now: NOW })
+  on('command.register', ($, e) => ({ value: { command: e.name } }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1000000 }, rateLimits: WINDOWS } }))
   on('classic.SessionStart', () => ({}))
@@ -90,6 +93,7 @@ test('squeezed, the folded cache stacks as a third block, then takes its own row
 test('the terminal draws the cache as text, with no drawings and no fold button', async ($, on) => {
   mock.store(on)
   mock.clock(on, { now: NOW })
+  on('command.register', ($, e) => ({ value: { command: e.name } }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1000000 }, rateLimits: WINDOWS } }))
   on('classic.SessionStart', () => ({}))
@@ -108,6 +112,7 @@ test('the terminal draws the cache as text, with no drawings and no fold button'
 test('a cleared session drops the cache until the next reply', async ($, on) => {
   mock.store(on)
   mock.clock(on, { now: NOW })
+  on('command.register', ($, e) => ({ value: { command: e.name } }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1000000 }, rateLimits: WINDOWS } }))
   on('classic.SessionStart', () => ({}))

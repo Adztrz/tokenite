@@ -71,6 +71,7 @@ test('a window on pace to run dry says when, beside its reset', async ($, on) =>
   ]
   mock.store(on, { trails: { five_hour: [{ at: NOW - 30 * MIN, pct: 50 }] } })
   mock.clock(on, { now: NOW })
+  on('command.register', ($, e) => ({ value: { command: e.name } }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('session.usage', () => ({ value: { startedAt: 1, context: { window: 1000000 }, rateLimits: windows } }))
   await $.session.start({ surface: 'terminal', isInteractive: true, cwd: '/work' })
@@ -88,6 +89,7 @@ test('five minutes before the cache goes cold a toast says what sending now save
   const toasts: string[] = []
   mock.store(on)
   const clock = mock.clock(on, { now: NOW })
+  on('command.register', ($, e) => ({ value: { command: e.name } }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('session.usage', () => ({ value: { startedAt: 1, context: { window: 1000000 }, rateLimits: [] } }))
   on('classic.SessionStart', () => ({}))
@@ -111,6 +113,7 @@ test('five minutes before the cache goes cold a toast says what sending now save
 test('the card counts this session and today; the terminal says today on the row', async ($, on) => {
   mock.store(on)
   mock.clock(on, { now: NOW })
+  on('command.register', ($, e) => ({ value: { command: e.name } }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   // A resumed session that had already cost $2 before today.
   on('session.usage', () => ({ value: { startedAt: 1, context: { window: 1000000 }, rateLimits: [], cost: { usd: 2 } } }))
@@ -141,6 +144,7 @@ test('a new session opens with the last reading, a window past its reset shown f
     ],
   })
   mock.clock(on, { now: NOW })
+  on('command.register', ($, e) => ({ value: { command: e.name } }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   // No reading yet in this session.
   on('session.usage', () => ({ value: { startedAt: 1, context: { window: 1000000 }, rateLimits: [] } }))

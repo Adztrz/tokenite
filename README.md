@@ -16,7 +16,7 @@ A free, open-source mod for Claude Code. It adds one slim band above your prompt
 |---|---|---|
 | What | How much of your 7-day and 5-hour windows is **left**, when each resets, and **when you'll run out** at your current pace | Whether the cache is **warm** or **cold**, what your next message costs, a **warning before it goes cold**, and **what you've spent** today |
 | Where it comes from | The app's own rate-limit figures | The time of your last request, the size of your chat, and the session's `/cost` total |
-| Cost | Nothing: it never calls a model | Nothing |
+| Cost | Nothing: it never calls a model | Nothing, unless you turn on `/keepwarm`, whose pings cost tokens |
 
 It installs once and shows in every session after that. No commands to learn.
 
@@ -68,6 +68,32 @@ Click **Show** to open the cache card and **Hide** to fold it. Warm starts folde
   <img src="assets/card-cold.svg" alt="Cold cache card: 12h 45m idle, 182k tokens to re-cache, next message $1.46 on Opus" width="100%">
 </p>
 
+### ● Keep the cache warm
+
+Stepping away? `/keepwarm` holds the cache so you come back to a cheap message instead of a full rewrite. It sends one small ping after every 50 idle minutes, for a window you choose. Or press **Keep warm** on the open card, or on the folded row when the hour is nearly up.
+
+```
+/keepwarm           hold for six hours
+/keepwarm 90m       hold for a window of your own (1m to 24h)
+/keepwarm status    time left, next ping, what the pings cost and saved
+/keepwarm off       stop
+```
+
+While it holds, the chip reads **HOLD** with the time to the next ping. It stops by itself, with a toast saying why, when:
+
+- a ping finds the cache already gone
+- your 5-hour or 7-day usage is low, or the 7-day window is on pace to run out within six hours
+- more pings would cost as much as the rewrite they save
+- the API keeps failing, or the window ends
+
+The card shows **KEEP-WARM SAVED**: the rewrites avoided, less what the pings cost, counted only when you come back after the hour and your message really reads warm.
+
+Pings cost tokens, including a one-word reply. Claude Code has to stay open and your computer awake. The timing assumes a one-hour cache: the default on a subscription, while API-key sessions need [`promptCacheTtl`](https://code.claude.com/docs/en/prompt-caching#choose-the-ttl-yourself) set to `"1h"`.
+
+### ● Cold guard
+
+`/coldguard on` holds a message once when the cache is cold and the chat is 50k tokens or more, and shows what it would cost. Send it again to pay, or `/clear` to start fresh. Slash commands and prompts nobody typed are never held. It's off by default; `/coldguard off` turns it off again.
+
 ### ● Fits any width
 
 - **Wide:** everything on one row.
@@ -94,9 +120,10 @@ tokenite/
 │   ├── cache-art.ts        colours, the crystal gauge, the cache card, the price table
 │   ├── forecast.ts         when a window runs out at your current pace
 │   ├── spend.ts            today's spend across sessions
+│   ├── keepwarm.ts         when a ping is due, what it cost, when to stop
 │   └── font.ts             Outfit, embedded so the drawings render anywhere
 ├── types/index.d.ts        the shape of what the band remembers
-├── tests/                  12 tests: layouts, warm and cold, terminal, forecast, warning, spend
+├── tests/                  24 tests: layouts, warm and cold, forecast, warning, spend, keep-warm, guard
 └── assets/                 banner, mark, cache card renders
 ```
 
@@ -123,7 +150,7 @@ claude plugin uninstall tokenite
 
 ## License
 
-[MIT](LICENSE). Based on [ribbon](https://github.com/robonuggets/ribbon), also MIT.
+[MIT](LICENSE). Based on [ribbon](https://github.com/robonuggets/ribbon), also MIT. Keep-warm and the cold guard follow the idea of [cache-tax](https://github.com/karanb192/cache-tax).
 
 The embedded font is [Outfit](https://github.com/Outfitio/Outfit-Fonts), under the SIL Open Font License 1.1.
 

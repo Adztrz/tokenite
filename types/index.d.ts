@@ -26,6 +26,25 @@ export type Ledger = { day: string; usd: number; seen: Record<string, number> }
 /** What the band shows of spend: this session's /cost total and today's. */
 export type Spend = { session: number; today: number }
 
+/**
+ * A keep-warm window: when it ends; since when this break has run and what its
+ * pings cost; all pings so far and the last one's receipt; a busy API's retries;
+ * whether it waits for a turn; and why it stopped, once it has.
+ */
+export type Keep = {
+  deadline: number
+  breakFrom: number
+  breakUsd: number
+  breakPings: number
+  pings: number
+  pingUsd: number
+  last: { read: number; write: number; usd: number | null } | null
+  retries: number
+  retryAt: number
+  waiting: boolean
+  stopped: string | null
+}
+
 declare module 'claude-code' {
   interface PluginState {
     'tokenite': {
@@ -35,6 +54,8 @@ declare module 'claude-code' {
       trails: Trails
       warned: number
       spend: Spend | null
+      keep: Keep | null
+      saved: number
     }
   }
 }
