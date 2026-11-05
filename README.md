@@ -79,7 +79,7 @@ Stepping away? `/keepwarm` holds the cache so you come back to a cheap message i
 /keepwarm off       stop
 ```
 
-While it holds, the chip reads **HOLD** with the time to the next ping. It stops by itself, with a toast saying why, when:
+While it holds, the chip reads **HOLD** with the time to the next ping, or **wait** when a ping can't go out until your next message, as after restarting Claude Code. It stops by itself, with a toast saying why, when:
 
 - a ping finds the cache already gone
 - your 5-hour or 7-day usage is low, or the 7-day window is on pace to run out within six hours

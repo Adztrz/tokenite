@@ -610,7 +610,8 @@ export const register: Register = on => {
           mine ? <Text key="cost" color={TEXT} bold>{usd(costOf(mine, mode, view.tokens))}</Text> : null,
         ]
       : holdingWarm
-        ? [<Text key="left" color={hue} bold>{` ping ${held?.waiting ? 'next turn' : pingIn}`}</Text>]
+        // As short as WARM's minutes, so the row stays on one line; /keepwarm status spells it out.
+        ? [<Text key="left" color={hue} bold>{` ${held?.waiting ? 'wait' : pingIn}`}</Text>]
         : [<Text key="left" color={hue} bold>{` ${Math.max(0, TTL_MIN - view.idleMin)}m${oneLine ? '' : ' left'}`}</Text>]
     // The card counts spend; the terminal, which has no card, says today's on the row.
     if (!Svg && spent) summary.push(<Text key="spent" color={MUTED}>{` · today ~${usd(spent.today)}`}</Text>)
