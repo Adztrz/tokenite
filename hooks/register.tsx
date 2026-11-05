@@ -624,7 +624,11 @@ export const register: Register = on => {
     const offerKeep = !cold && (open || (!holding && TTL_MIN - view.idleMin <= 10))
     const button = Svg ? (
       <Box key="fold" flexDirection="row" flexShrink={0} alignItems="flex-start">
-        {offerKeep ? <Button key="keep-warm" label={holding ? 'Stop holding' : 'Keep warm'} onPress={toggleKeep} /> : null}
+        {offerKeep ? (
+          <Box marginRight={1}>
+            <Button key="keep-warm" label={holding ? 'Stop holding' : 'Keep warm'} onPress={toggleKeep} />
+          </Box>
+        ) : null}
         <Button key="cache-fold" label={open ? 'Hide' : 'Show'} onPress={toggle} />
       </Box>
     ) : null
