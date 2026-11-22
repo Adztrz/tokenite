@@ -466,7 +466,8 @@ export const register: Register = on => {
   // one without, or a clear, brings Claude's colours back.
   on('theme.set', async ($, e, next) => {
     const r = await next(e)
-    if ('isDrawn' in r && r.isDrawn) await update($, look, () => lookOf(e.colors))
+    // an op's result comes back as { value } (or { deny }), the theme's own answer inside
+    if ('value' in r && r.value?.isDrawn) await update($, look, () => lookOf(e.colors))
     return r
   })
   on('theme.clear', async ($, e, next) => {
