@@ -164,11 +164,11 @@ test("a theme's colours become the band's, and none brings Claude's back", () =>
     'gray-750': '#302a4c', 'gray-840': '#1a1532', 'gray-900': '#0f0c20', 'role-accent-250': '#41c6dc', 'role-warning-250': '#e8a33c',
   } as const
   const look = lookOf({ v: 1, label: 'Neon Rooftop', inputs: { dark } })
-  expect(look).toEqual({ bg: '#1a1532', text: '#ece8f6', body: '#b7afd3', muted: '#a59dc4', empty: '#4f4a6e', line: '#302a4c',
+  expect(look).toEqual({ bg: 'transparent', text: '#ece8f6', body: '#b7afd3', muted: '#a59dc4', empty: '#4f4a6e', line: '#302a4c',
     primary: '#41c6dc', alert: '#ece8f6', ink: '#0f0c20', warm: '#e8a33c', cold: CLAUDE.cold })
   // a light-only theme reads the other end of its gray scale
   const light = lookOf({ v: 1, label: 'Corpo', inputs: { light: { 'gray-10': '#f7f7f8', 'gray-30': '#e5e3e8', 'gray-600': '#5c5c66', 'gray-900': '#111114' } } })
-  expect(light?.bg).toBe('#f7f7f8')
+  expect(light?.bg).toBe('transparent')
   expect(light?.text).toBe('#111114')
   // no colours, or too few to read: Claude's stay
   expect(lookOf(undefined)).toBeNull()

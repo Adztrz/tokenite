@@ -96,7 +96,7 @@ Pings cost tokens, including a one-word reply. Claude Code has to stay open and 
 
 ### ● Follows your theme
 
-In the desktop app, a theme that recolours Claude Code (such as [cyberpunk-themes](https://github.com/nocashflow/claude-cyberpunk-themes)' `/neon`) recolours the band too: the card, text and dots take the theme's grays, the 7-day bar its accent, and a warm cache its warm hue. Clear the theme and Claude's colours come back. The terminal keeps Claude's.
+In the desktop app, a theme that recolours Claude Code (such as [cyberpunk-themes](https://github.com/nocashflow/claude-cyberpunk-themes)' `/neon`) recolours the band too: the card turns clear so the scene shows through, its text and dots take the theme's grays, the 7-day bar its accent, and a warm cache its warm hue. Clear the theme and Claude's colours come back. The terminal keeps Claude's.
 
 ### ● Fits any width
 

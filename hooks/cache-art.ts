@@ -41,7 +41,7 @@ export let INK = CLAUDE.ink
 /**
  * A theme's colours as the band's: its gray scale (gray-0 lightest to gray-900
  * darkest) for the card, text and dots, its accent for the 7-day bar, and its
- * warning hue for a warm cache. Dark mode where the theme gives it, else light.
+ * warning hue for a warm cache, on a clear card. Dark mode where the theme gives it, else light.
  * Null when the theme brings no colours, or too few to read: the band keeps Claude's.
  */
 export const lookOf = (colors: ThemeColors | undefined): Look | null => {
@@ -56,8 +56,9 @@ export const lookOf = (colors: ThemeColors | undefined): Look | null => {
         primary: pick('role-accent-fill', 'role-accent-450'), warm: pick('role-warning-fill', 'role-warning-450'), ink: pick('gray-900') }
   if (!L.bg || !L.text || !L.muted) return null
   const primary = L.primary ?? CLAUDE.primary
+  // the card itself goes clear over a theme, so its scene shows through the app's frosted band slot
   return {
-    bg: L.bg, text: L.text, body: L.body ?? L.muted, muted: L.muted, empty: L.empty ?? L.muted, line: L.line ?? L.muted,
+    bg: 'transparent', text: L.text, body: L.body ?? L.muted, muted: L.muted, empty: L.empty ?? L.muted, line: L.line ?? L.muted,
     primary, alert: L.text, ink: L.ink ?? CLAUDE.ink, warm: L.warm ?? primary, cold: CLAUDE.cold,
   }
 }
