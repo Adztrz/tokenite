@@ -466,8 +466,9 @@ export const register: Register = on => {
   // one without, or a clear, brings Claude's colours back.
   on('theme.set', async ($, e, next) => {
     const r = await next(e)
-    // an op's result comes back as { value } (or { deny }), the theme's own answer inside
-    if ('value' in r && r.value?.isDrawn) await update($, look, () => lookOf(e.colors))
+    // an op's result comes back as { value } (or { deny }). A theme set at session start answers isDrawn: false while no
+    // window is attached yet, and is drawn once one is, so any theme that wasn't refused counts
+    if ('value' in r) await update($, look, () => lookOf(e.colors))
     return r
   })
   on('theme.clear', async ($, e, next) => {
