@@ -94,6 +94,10 @@ Pings cost tokens, including a one-word reply. Claude Code has to stay open and 
 
 `/coldguard on` holds a message once when the cache is cold and the chat is 50k tokens or more, and shows what it would cost. Send it again to pay, or `/clear` to start fresh. Slash commands and prompts nobody typed are never held. It's off by default; `/coldguard off` turns it off again.
 
+### ● Follows your theme
+
+In the desktop app, a theme that recolours Claude Code (such as [cyberpunk-themes](https://github.com/nocashflow/claude-cyberpunk-themes)' `/neon`) recolours the band too: the card, text and dots take the theme's grays, the 7-day bar its accent, and a warm cache its warm hue. Clear the theme and Claude's colours come back. The terminal keeps Claude's.
+
 ### ● Fits any width
 
 - **Wide:** everything on one row.

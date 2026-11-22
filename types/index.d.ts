@@ -1,3 +1,10 @@
+/**
+ * The band's colours: the card, its text and dots, the 7-day bar (primary), text on
+ * a filled chip (ink), and the cache's two states. From the standing theme, or null
+ * for Claude's own.
+ */
+export type Look = { bg: string; text: string; body: string; muted: string; empty: string; line: string; primary: string; alert: string; ink: string; warm: string; cold: string }
+
 /** One usage window: which one, how much is used (0 to 100), when it resets. */
 export type Window = { kind: string; percentUsed: number; resetsAt?: string }
 
@@ -48,6 +55,7 @@ export type Keep = {
 declare module 'claude-code' {
   interface PluginState {
     'tokenite': {
+      look: Look | null
       windows: Window[]
       cache: CacheFacts | null
       fold: Fold | null

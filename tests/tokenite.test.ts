@@ -1,5 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 
+import { CLAUDE, chipSvg, lookOf, markSvg, setLook } from '../hooks/cache-art'
 import { addSample, runsOutIn, weekRunsOutIn } from '../hooks/forecast'
 import { dayOf, tally } from '../hooks/spend'
 
@@ -155,4 +156,27 @@ test('a new session opens with the last reading, a window past its reset shown f
   expect(await band.find({ text: '100% left' })).toBeDefined()
   expect(await band.find({ text: 'USAGE · waiting for the first reply' })).toBeUndefined()
   await band.unmount()
+})
+
+test("a theme's colours become the band's, and none brings Claude's back", () => {
+  const dark = {
+    'gray-0': '#ffffff', 'gray-30': '#ece8f6', 'gray-300': '#b7afd3', 'gray-400': '#a59dc4', 'gray-650': '#4f4a6e',
+    'gray-750': '#302a4c', 'gray-840': '#1a1532', 'gray-900': '#0f0c20', 'role-accent-250': '#41c6dc', 'role-warning-250': '#e8a33c',
+  } as const
+  const look = lookOf({ v: 1, label: 'Neon Rooftop', inputs: { dark } })
+  expect(look).toEqual({ bg: '#1a1532', text: '#ece8f6', body: '#b7afd3', muted: '#a59dc4', empty: '#4f4a6e', line: '#302a4c',
+    primary: '#41c6dc', alert: '#ece8f6', ink: '#0f0c20', warm: '#e8a33c', cold: CLAUDE.cold })
+  // a light-only theme reads the other end of its gray scale
+  const light = lookOf({ v: 1, label: 'Corpo', inputs: { light: { 'gray-10': '#f7f7f8', 'gray-30': '#e5e3e8', 'gray-600': '#5c5c66', 'gray-900': '#111114' } } })
+  expect(light?.bg).toBe('#f7f7f8')
+  expect(light?.text).toBe('#111114')
+  // no colours, or too few to read: Claude's stay
+  expect(lookOf(undefined)).toBeNull()
+  expect(lookOf({ v: 1, label: 'x', inputs: { dark: { 'gray-840': '#101010' } } })).toBeNull()
+
+  setLook(look)
+  expect(chipSvg('warm').source).toContain('#e8a33c')
+  expect(markSvg('warm').toLowerCase()).not.toContain('#d97757')
+  setLook(null)
+  expect(chipSvg('warm').source).toContain('#d97757')
 })

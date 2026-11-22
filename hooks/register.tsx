@@ -1,10 +1,10 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { CacheFacts, Fold, Keep, Ledger, Spend, Trails, Window } from '../types'
+import type { CacheFacts, Fold, Keep, Ledger, Look, Spend, Trails, Window } from '../types'
 import {
   ALERT, BG, BODY, PRIMARY, EMPTY, HUE, INK, MODELS, MUTED, MARK_SIZE, TEXT, TTL_MIN, TTL_MS, WORD,
-  bandPx, cardKindOf, cardSvg, chipSvg, coldCost, costOf, familyOf, fmtIdle, kindOf, mineModel, markSvg, usd, warmCost,
+  bandPx, cardKindOf, cardSvg, lookOf, setLook, chipSvg, coldCost, costOf, familyOf, fmtIdle, kindOf, mineModel, markSvg, usd, warmCost,
 } from './cache-art'
 import type { CacheView } from './cache-art'
 import { addSample, runsOutIn, weekRunsOutIn } from './forecast'
@@ -56,6 +56,8 @@ const spend = atom({ plugin: 'tokenite', key: 'spend' } as const, null as Spend 
 
 const keep = atom({ plugin: 'tokenite', key: 'keep' } as const, null as Keep | null)
 const saved = atom({ plugin: 'tokenite', key: 'saved' } as const, 0)
+/** The standing theme's colours, or null for Claude's own (lookOf). */
+const look = atom({ plugin: 'tokenite', key: 'look' } as const, null as Look | null)
 
 /** This session in the spend ledger: when it began, which a resume keeps. */
 let sessionKey = ''
@@ -74,7 +76,8 @@ const UNATTENDED = new Set(['plugin', 'task-notification', 'scheduled-trigger', 
 
 const NAMES: Record<string, string> = { seven_day: '7D', five_hour: '5H', spend_limit: 'SPEND' }
 const ORDER: Record<string, number> = { seven_day: 0, five_hour: 1 }
-const COLORS: Record<string, string> = { seven_day: PRIMARY, five_hour: BODY }
+/** Each window's bar colour, read at draw time since a theme can change them. */
+const colorOf = (kind: string): string | undefined => ({ seven_day: PRIMARY, five_hour: BODY } as Record<string, string>)[kind]
 
 const clean = (list: readonly Window[]): Window[] =>
   list
@@ -459,8 +462,23 @@ export const register: Register = on => {
     return { drop: `The cache is cold, so this message rewrites ${Math.round(c.tokens / 1000)}k tokens: ${price}. Send it again to pay, or /clear to start fresh.` }
   })
 
+  // A theme with colours (any plugin's, such as cyberpunk-themes' /neon) recolours the band to match;
+  // one without, or a clear, brings Claude's colours back.
+  on('theme.set', async ($, e, next) => {
+    const r = await next(e)
+    if ('isDrawn' in r && r.isDrawn) await update($, look, () => lookOf(e.colors))
+    return r
+  })
+  on('theme.clear', async ($, e, next) => {
+    const r = await next(e)
+    await update($, look, () => null)
+    return r
+  })
+
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey) return next(e)
+    // The terminal keeps Claude's colours: a theme's palette paints the apps alone.
+    setLook(e.surface === 'terminal' ? null : await read($, look))
 
     const ui = $.ui.resolve(e)
     const { Box, Button, Text } = ui
@@ -509,7 +527,7 @@ export const register: Register = on => {
       const left = Math.max(0, Math.round((100 - w.percentUsed) * 10) / 10)
       return {
         left,
-        col: COLORS[w.kind] ?? TEXT,
+        col: colorOf(w.kind) ?? TEXT,
         name: NAMES[w.kind] ?? w.kind.toUpperCase(),
         d: dots(left, cells),
         reset: fmtReset(w.resetsAt, now),

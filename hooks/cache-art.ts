@@ -1,28 +1,75 @@
 // The cache card's drawings. Pure: each function returns an SVG string the band
 // hands to Svg. Nothing here touches the engine.
 
+import type { ThemeColors } from 'claude-code'
+import type { Look } from '../types'
 import { SANS } from './font'
 
 export type Mode = 'warm' | 'cold'
 export type Kind = 'wide' | 'stacked' | 'tight'
 
-// The band's colours: Claude's own palette (Anthropic's brand colours). Orange is
-// the one primary (the 7-day bar); the cache's states take orange and blue.
+// The band's colours: Claude's own palette (Anthropic's brand colours) unless a
+// theme with colours stands, then that theme's (setLook). Orange is the one
+// primary (the 7-day bar); the cache's states take orange and blue.
 // The background is the app's own band slot (measured, dark theme), so the band
 // sits flush in its frame; the dots and lines are lifted to read on it.
-export const BG = '#232323'      // the app's band slot
-export const TEXT = '#faf9f5'    // values: ivory
-export const BODY = '#b0aea5'    // the 5-hour bar: mid grey
-export const MUTED = '#9a988f'   // labels
-export const EMPTY = '#4a4945'   // unlit dots
-export const LINE = '#3a3935'    // hairlines inside the card
-export const PRIMARY = '#d97757'    // the primary: the 7-day bar, Claude orange
-export const ALERT = '#faf9f5'   // LOW: ivory, bold, beside the orange
+export const CLAUDE: Look = {
+  bg: '#232323',      // the app's band slot
+  text: '#faf9f5',    // values: ivory
+  body: '#b0aea5',    // the 5-hour bar: mid grey
+  muted: '#9a988f',   // labels
+  empty: '#4a4945',   // unlit dots
+  line: '#3a3935',    // hairlines inside the card
+  primary: '#d97757', // the primary: the 7-day bar, Claude orange
+  alert: '#faf9f5',   // LOW: ivory, bold, beside the orange
+  ink: '#141413',     // text on a filled chip: Claude's dark
+  warm: '#d97757',    // the cache's two states: Claude orange,
+  cold: '#6a9bcc',    // and the palette's blue
+}
+// Live bindings: setLook reassigns them before each draw, and every importer reads the current one.
+export let BG = CLAUDE.bg
+export let TEXT = CLAUDE.text
+export let BODY = CLAUDE.body
+export let MUTED = CLAUDE.muted
+export let EMPTY = CLAUDE.empty
+export let LINE = CLAUDE.line
+export let PRIMARY = CLAUDE.primary
+export let ALERT = CLAUDE.alert
+export let HUE: Record<Mode, string> = { warm: CLAUDE.warm, cold: CLAUDE.cold }
+export let INK = CLAUDE.ink
 
-// The cache's two states: Claude orange, and the palette's blue.
-export const HUE: Record<Mode, string> = { warm: '#d97757', cold: '#6a9bcc' }
-/** Text on a filled chip: Claude's dark. */
-export const INK = '#141413'
+/**
+ * A theme's colours as the band's: its gray scale (gray-0 lightest to gray-900
+ * darkest) for the card, text and dots, its accent for the 7-day bar, and its
+ * warning hue for a warm cache. Dark mode where the theme gives it, else light.
+ * Null when the theme brings no colours, or too few to read: the band keeps Claude's.
+ */
+export const lookOf = (colors: ThemeColors | undefined): Look | null => {
+  const dark = colors?.inputs?.dark, light = colors?.inputs?.light
+  const c = dark ?? light
+  const hex = (k: string): string | undefined => (typeof c?.[k] === 'string' && /^#[0-9a-f]{6}$/i.test(c[k]!) ? c[k] : undefined)
+  const pick = (...keys: string[]): string | undefined => keys.map(hex).find(Boolean)
+  const L = dark
+    ? { bg: pick('gray-840', 'gray-850', 'gray-830'), text: pick('gray-30', 'gray-50'), body: pick('gray-300'), muted: pick('gray-400'), empty: pick('gray-650', 'gray-600'), line: pick('gray-750', 'gray-700'),
+        primary: pick('role-accent-250', 'role-accent-300'), warm: pick('role-warning-250', 'role-warning-300'), ink: pick('gray-900') }
+    : { bg: pick('gray-10', 'gray-30'), text: pick('gray-900', 'gray-850'), body: pick('gray-500'), muted: pick('gray-600'), empty: pick('gray-250', 'gray-300'), line: pick('gray-150', 'gray-200'),
+        primary: pick('role-accent-fill', 'role-accent-450'), warm: pick('role-warning-fill', 'role-warning-450'), ink: pick('gray-900') }
+  if (!L.bg || !L.text || !L.muted) return null
+  const primary = L.primary ?? CLAUDE.primary
+  return {
+    bg: L.bg, text: L.text, body: L.body ?? L.muted, muted: L.muted, empty: L.empty ?? L.muted, line: L.line ?? L.muted,
+    primary, alert: L.text, ink: L.ink ?? CLAUDE.ink, warm: L.warm ?? primary, cold: CLAUDE.cold,
+  }
+}
+
+/** Draws with this look from now on; null is Claude's own. */
+export const setLook = (look: Look | null): void => {
+  const l = look ?? CLAUDE
+  if (l.bg === BG && l.text === TEXT && l.primary === PRIMARY && l.warm === HUE.warm) return
+  BG = l.bg; TEXT = l.text; BODY = l.body; MUTED = l.muted; EMPTY = l.empty; LINE = l.line
+  PRIMARY = l.primary; ALERT = l.alert; INK = l.ink; HUE = { warm: l.warm, cold: l.cold }
+  TONES = { warm: l === CLAUDE ? CLAUDE_TONES.warm : ramp(l.warm), cold: CLAUDE_TONES.cold }
+}
 
 export const WORD: Record<Mode, string> = { warm: 'WARM', cold: 'COLD' }
 
@@ -187,10 +234,16 @@ const GLINT_EVERY = 5
 const GLINT_STEP = 0.04
 
 /** The crystal's tones, brightest to darkest: Claude orange warm, the blue cold. */
-const TONES: Record<Mode, Record<string, string>> = {
+const CLAUDE_TONES: Record<Mode, Record<string, string>> = {
   warm: { h: '#f6c3ad', l: '#eb9a7a', r: '#e99b7d', b: '#d97757', e: '#c8694a', d: '#b95b3d', k: '#8f4129', s: '#fff8f2' },
   cold: { h: '#d6e6f4', l: '#a9c8e6', r: '#93b9de', b: '#6a9bcc', e: '#5d8cbe', d: '#4f7fb0', k: '#3a5f88', s: '#ffffff' },
 }
+let TONES: Record<Mode, Record<string, string>> = CLAUDE_TONES
+/** A theme's warm hue as the crystal's tones, at the same steps as Claude orange's. */
+const ramp = (b: string): Record<string, string> => ({
+  h: mix(b, '#ffffff', 0.55), l: mix(b, '#ffffff', 0.25), r: mix(b, '#ffffff', 0.2), b,
+  e: mix(b, '#000000', 0.08), d: mix(b, '#000000', 0.15), k: mix(b, '#000000', 0.35), s: mix(b, '#ffffff', 0.94),
+})
 
 /**
  * The crystal as a gauge in a `w` x `h` box at the origin: lit from the bottom

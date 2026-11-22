@@ -60,3 +60,4 @@ test('in a narrow band each window stacks, with percent left and reset time on t
   expect(await band.find({ text: 'resets 2h 0m' })).toBeDefined()
   await band.unmount()
 })
+
