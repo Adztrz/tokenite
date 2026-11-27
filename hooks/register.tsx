@@ -462,13 +462,15 @@ export const register: Register = on => {
     return { drop: `The cache is cold, so this message rewrites ${Math.round(c.tokens / 1000)}k tokens: ${price}. Send it again to pay, or /clear to start fresh.` }
   })
 
-  // A theme with colours (any plugin's, such as cyberpunk-themes' /neon) recolours the band to match;
-  // one without, or a clear, brings Claude's colours back.
+  // A theme with colours (any plugin's, such as cyberpunk-themes' /neon) recolours the band to match; a backdrop
+  // without colours gets a clear card in Claude's colours; a clear brings Claude's own back.
   on('theme.set', async ($, e, next) => {
     const r = await next(e)
     // an op's result comes back as { value } (or { deny }). A theme set at session start answers isDrawn: false while no
     // window is attached yet, and is drawn once one is, so any theme that wasn't refused counts
-    if ('value' in r) await update($, look, () => lookOf(e.colors))
+    // a backdrop with no palette (theme-examples' /custom-theme) still gets a clear card, in the window's light or dark
+    const ev = e as typeof e & { backdrop?: unknown; overrideColorScheme?: 'light' | 'dark' }
+    if ('value' in r) await update($, look, () => lookOf(e.colors, ev.backdrop ? { scheme: ev.overrideColorScheme } : undefined))
     return r
   })
   on('theme.clear', async ($, e, next) => {

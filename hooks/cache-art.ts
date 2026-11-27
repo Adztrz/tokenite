@@ -39,12 +39,27 @@ export let HUE: Record<Mode, string> = { warm: CLAUDE.warm, cold: CLAUDE.cold }
 export let INK = CLAUDE.ink
 
 /**
+ * Claude's own colours on a clear card, for a theme that paints a backdrop but brings no palette (theme-examples'
+ * /custom-theme scenes): its scene shows through, and the text is Claude's dark ink on a light window, ivory on a dark one.
+ */
+export const CLEAR: Record<'light' | 'dark', Look> = {
+  dark: { ...CLAUDE, bg: 'transparent' },
+  light: { bg: 'transparent', text: '#141413', body: '#5e5d59', muted: '#66655f', empty: '#cfccc2', line: '#dedbd1',
+    primary: '#c6613f', alert: '#141413', ink: '#faf9f5', warm: '#c6613f', cold: '#3f74ad' },
+}
+
+/**
  * A theme's colours as the band's: its gray scale (gray-0 lightest to gray-900
  * darkest) for the card, text and dots, its accent for the 7-day bar, and its
  * warning hue for a warm cache, on a clear card. Dark mode where the theme gives it, else light.
  * Null when the theme brings no colours, or too few to read: the band keeps Claude's.
  */
-export const lookOf = (colors: ThemeColors | undefined): Look | null => {
+export const lookOf = (colors: ThemeColors | undefined, scene?: { scheme?: 'light' | 'dark' }): Look | null => {
+  const own = paletteOf(colors)
+  // a backdrop without a palette: a clear card in Claude's colours for the window's kind (dark unless it says light)
+  return own ?? (scene ? CLEAR[scene.scheme === 'light' ? 'light' : 'dark'] : null)
+}
+const paletteOf = (colors: ThemeColors | undefined): Look | null => {
   const dark = colors?.inputs?.dark, light = colors?.inputs?.light
   const c = dark ?? light
   const hex = (k: string): string | undefined => (typeof c?.[k] === 'string' && /^#[0-9a-f]{6}$/i.test(c[k]!) ? c[k] : undefined)

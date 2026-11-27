@@ -173,6 +173,12 @@ test("a theme's colours become the band's, and none brings Claude's back", () =>
   // no colours, or too few to read: Claude's stay
   expect(lookOf(undefined)).toBeNull()
   expect(lookOf({ v: 1, label: 'x', inputs: { dark: { 'gray-840': '#101010' } } })).toBeNull()
+  // a backdrop with no palette (theme-examples): a clear card, dark ink on a light window, ivory on a dark one
+  expect(lookOf(undefined, { scheme: 'light' })).toMatchObject({ bg: 'transparent', text: '#141413' })
+  expect(lookOf(undefined, { scheme: 'dark' })).toMatchObject({ bg: 'transparent', text: CLAUDE.text })
+  expect(lookOf(undefined, {})).toMatchObject({ bg: 'transparent', text: CLAUDE.text })
+  // a palette still wins over the plain clear card
+  expect(lookOf({ v: 1, label: 'Neon Rooftop', inputs: { dark } }, { scheme: 'light' })?.text).toBe('#ece8f6')
 
   setLook(look)
   expect(chipSvg('warm').source).toContain('#e8a33c')
